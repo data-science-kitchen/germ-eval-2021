@@ -4,7 +4,7 @@ from flair.models import TextClassifier
 from flair.trainers import ModelTrainer
 
 
-corpus = GermEval2021('data/GermEval21_Toxic_Train.csv', fold=0, seed=1234)
+corpus = GermEval2021('data/shuffeled_df.csv', fold=0)
 label_dict = corpus.make_label_dictionary()
 
 word_embeddings = [WordEmbeddings('de')]

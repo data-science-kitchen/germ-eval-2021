@@ -27,6 +27,7 @@ class GermEval2021(CSVClassificationCorpus):
         super(GermEval2021, self).__init__(
             data_folder=fold_dir,
             column_name_map={0: 'text', 1: 'label_toxic', 2: 'label_engaging', 3: 'label_fact_claiming'},
+            skip_header=True,
             train_file='train.csv',
             dev_file='dev.csv',
             **corpusargs

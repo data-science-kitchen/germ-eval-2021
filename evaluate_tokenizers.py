@@ -25,6 +25,7 @@ def main(corpus_file: Union[str, Path],
         results_list = []
         tasks = ['Toxic', 'Engaging', 'FactClaiming']
 
+        # You may have to download spaCy models first: python -m spacy download de_dep_news_trf
         tokenizers = [SpaceTokenizer(), SegtokTokenizer(), SpacyTokenizer('de_dep_news_trf')]
 
         with tqdm(total=4 * len(tokenizers)) as progress_bar:
@@ -60,6 +61,8 @@ def main(corpus_file: Union[str, Path],
         results.to_json(results_file)
 
     sns.boxplot(x='tokenizer', y='f1', hue='task', data=results)
+    plt.grid(True)
+    plt.ylim((0, 1))
     plt.show()
 
 

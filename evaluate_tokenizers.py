@@ -1,3 +1,4 @@
+from custom_tokenizers import SpaceAndURLTokenizer
 from dataset import process_corpus, GermEval2021
 import fire
 from flair.embeddings import TransformerDocumentEmbeddings
@@ -26,7 +27,7 @@ def main(corpus_file: Union[str, Path],
         tasks = ['Toxic', 'Engaging', 'FactClaiming']
 
         # You may have to download spaCy models first: python -m spacy download de_dep_news_trf
-        tokenizers = [SpaceTokenizer(), SegtokTokenizer(), SpacyTokenizer('de_dep_news_trf')]
+        tokenizers = [SpaceTokenizer(), SpaceAndURLTokenizer(), SegtokTokenizer(), SpacyTokenizer('de_dep_news_trf')]
 
         with tqdm(total=4 * len(tokenizers)) as progress_bar:
             for tokenizer in tokenizers:

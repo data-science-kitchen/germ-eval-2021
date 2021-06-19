@@ -46,7 +46,7 @@ def process_corpus(corpus: Corpus,
         document_embeddings.embed(sentence)
 
         embeddings_train.append(sentence.embedding.cpu().detach().numpy())
-        labels_train.append(np.asarray([float(x.value) for x in sentence.labels]))
+        labels_train.append(np.asarray([int(x.value) for x in sentence.labels]))
 
     embeddings_train = np.asarray(embeddings_train)
     labels_train = np.asarray(labels_train)
@@ -58,7 +58,7 @@ def process_corpus(corpus: Corpus,
         document_embeddings.embed(sentence)
 
         embeddings_dev.append(sentence.embedding.cpu().detach().numpy())
-        labels_dev.append(np.asarray([float(x.value) for x in sentence.labels]))
+        labels_dev.append(np.asarray([int(x.value) for x in sentence.labels]))
 
     embeddings_dev = np.asarray(embeddings_dev)
     labels_dev = np.asarray(labels_dev)

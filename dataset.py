@@ -1,8 +1,11 @@
+from flair.data import Corpus
 from flair.datasets import CSVClassificationCorpus
+from flair.embeddings import DocumentEmbeddings
+import numpy as np
 import pandas as pd
 from pathlib import Path
 import os
-from typing import Union
+from typing import Tuple, Union
 
 
 class GermEval2021(CSVClassificationCorpus):
@@ -32,3 +35,32 @@ class GermEval2021(CSVClassificationCorpus):
             dev_file='dev.csv',
             **corpusargs
         )
+
+
+def process_corpus(corpus: Corpus,
+                   document_embeddings: DocumentEmbeddings) -> Tuple[Tuple[np.array, np.array], Tuple[np.array, np.array]]:
+    embeddings_train = []
+    labels_train = []
+
+    for sentence in corpus.train:
+        document_embeddings.embed(sentence)
+
+        embeddings_train.append(sentence.embedding.cpu().detach().numpy())
+        labels_train.append(np.asarray([float(x.value) for x in sentence.labels]))
+
+    embeddings_train = np.asarray(embeddings_train)
+    labels_train = np.asarray(labels_train)
+
+    embeddings_dev = []
+    labels_dev = []
+
+    for sentence in corpus.dev:
+        document_embeddings.embed(sentence)
+
+        embeddings_dev.append(sentence.embedding.cpu().detach().numpy())
+        labels_dev.append(np.asarray([float(x.value) for x in sentence.labels]))
+
+    embeddings_dev = np.asarray(embeddings_dev)
+    labels_dev = np.asarray(labels_dev)
+
+    return (embeddings_train, labels_train), (embeddings_dev, labels_dev)

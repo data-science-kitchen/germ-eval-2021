@@ -1,4 +1,5 @@
-from dataset import process_corpus, GermEval2021
+from dataset import GermEval2021
+from features import *
 import fire
 from flair.embeddings import TransformerDocumentEmbeddings
 import pandas as pd
@@ -19,6 +20,13 @@ def main(corpus_file: Union[str, Path],
 
     document_embeddings = TransformerDocumentEmbeddings('bert-base-german-cased', fine_tune=False)
 
+    features = [
+        log_num_characters, log_average_word_length, log_word_length_std, positive_sentiment_logits,
+        negative_sentiment_logits, neutral_sentiment_logits
+    ]
+
+    feature_extractor = FeatureExtractor(features, document_embeddings=document_embeddings)
+
     pipeline = Pipeline([
         ('scaler', RobustScaler()),
         ('classifier', MultiOutputClassifier(GaussianNB()))
@@ -27,21 +35,21 @@ def main(corpus_file: Union[str, Path],
     with tqdm(total=4) as progress_bar:
         for fold_idx in range(4):
             corpus = GermEval2021(corpus_file, fold=fold_idx)
-
-            data_train, data_dev = process_corpus(corpus, document_embeddings)
+            
+            data_train, data_dev = feature_extractor.compute_features(corpus, save_file='features_fold{}.npz'.format(fold_idx))
 
             features_train, labels_train = data_train
             features_dev, labels_dev = data_dev
 
             pipeline.fit(features_train, labels_train)
-            predictions = pipeline.predict(features_dev)
+            predicted_labels = pipeline.predict(features_dev)
 
             for task_idx, task in enumerate(tasks):
                 results_list.append({
-                    'accuracy': accuracy_score(labels_dev[:, task_idx], predictions[:, task_idx]),
-                    'precision': precision_score(labels_dev[:, task_idx], predictions[:, task_idx]),
-                    'recall': recall_score(labels_dev[:, task_idx], predictions[:, task_idx]),
-                    'f1': f1_score(labels_dev[:, task_idx], predictions[:, task_idx]),
+                    'accuracy': accuracy_score(labels_dev[:, task_idx], predicted_labels[:, task_idx]),
+                    'precision': precision_score(labels_dev[:, task_idx], predicted_labels[:, task_idx]),
+                    'recall': recall_score(labels_dev[:, task_idx], predicted_labels[:, task_idx]),
+                    'f1': f1_score(labels_dev[:, task_idx], predicted_labels[:, task_idx], average='macro'),
                     'fold_idx': fold_idx,
                     'task': task
                 })

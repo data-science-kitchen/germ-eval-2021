@@ -1,7 +1,65 @@
+from flair.data import Corpus
+from flair.embeddings import DocumentEmbeddings
 import numpy as np
+import os
+from pathlib import Path
 import re
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import torch
+from typing import Callable, List, Optional, Tuple, Union
+
+
+class FeatureExtractor:
+    def __init__(self,
+                 features: List[Callable],
+                 document_embeddings: Optional[DocumentEmbeddings] = None) -> None:
+        self.features = features
+        self.document_embeddings = document_embeddings
+
+    def compute_features(self,
+                         corpus: Corpus,
+                         save_file: Optional[Union[str, Path]] = None) -> Tuple[Tuple[np.array, np.array], Tuple[np.array, np.array]]:
+        if save_file is not None and os.path.isfile(save_file):
+            output = np.load(save_file)
+
+            features_train = output['features_train']
+            labels_train = output['labels_train']
+            features_dev = output['features_dev']
+            labels_dev = output['labels_dev']
+        else:
+            output = []
+
+            if self.document_embeddings is not None:
+                feature_dim = len(self.features) + self.document_embeddings.embedding_length
+            else:
+                feature_dim = len(self.features)
+
+            for subset in [corpus.train, corpus.dev]:
+                features = np.zeros((len(subset), feature_dim), dtype=np.float32)
+                labels = np.zeros((len(subset), 3), dtype=np.int32)
+
+                for sentence_idx, sentence in enumerate(subset):
+                    for feature_idx, feature_func in enumerate(self.features):
+                        features[sentence_idx, feature_idx] = feature_func(sentence.to_plain_string())
+
+                    if self.document_embeddings is not None:
+                        self.document_embeddings.embed(sentence)
+                        features[sentence_idx, len(self.features):] = sentence.embedding.cpu().detach().numpy()
+
+                    labels[sentence_idx, :] = np.asarray([int(x.value) for x in sentence.labels])
+
+                output.append((features, labels))
+
+            features_train, labels_train = output[0]
+            features_dev, labels_dev = output[1]
+
+            np.savez(save_file,
+                     features_train=features_train,
+                     labels_train=labels_train,
+                     features_dev=features_dev,
+                     labels_dev=labels_dev)
+
+        return (features_train, labels_train), (features_dev, labels_dev)
 
 
 class SentimentModel:

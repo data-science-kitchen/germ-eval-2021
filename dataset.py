@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import os
+import re
 from typing import Tuple, Union
 
 
@@ -45,7 +46,19 @@ def process_corpus(corpus: Corpus,
     for sentence in corpus.train:
         document_embeddings.embed(sentence)
 
-        embeddings_train.append(sentence.embedding.cpu().detach().numpy())
+        embeddings = sentence.embedding.cpu().detach().numpy()
+
+        additional_features = np.asarray([
+            len(sentence),
+            sentence.tokenized.count('!'),
+            sentence.tokenized.count('?'),
+            sentence.tokenized.count('@USER') + sentence.tokenized.count('@ USER'),
+            sentence.tokenized.count('@MODERATOR') + sentence.tokenized.count('@ MODERATOR'),
+            int(sentence.tokenized.count('http') > 0),
+            sum(1 for _ in re.finditer(u'[\U0001f600-\U0001f650]', sentence.tokenized))
+        ], dtype=np.float32)
+
+        embeddings_train.append(np.hstack((embeddings, additional_features)))
         labels_train.append(np.asarray([int(x.value) for x in sentence.labels]))
 
     embeddings_train = np.asarray(embeddings_train)
@@ -57,7 +70,19 @@ def process_corpus(corpus: Corpus,
     for sentence in corpus.dev:
         document_embeddings.embed(sentence)
 
-        embeddings_dev.append(sentence.embedding.cpu().detach().numpy())
+        embeddings = sentence.embedding.cpu().detach().numpy()
+
+        additional_features = np.asarray([
+            len(sentence),
+            sentence.tokenized.count('!'),
+            sentence.tokenized.count('?'),
+            sentence.tokenized.count('@USER') + sentence.tokenized.count('@ USER'),
+            sentence.tokenized.count('@MODERATOR') + sentence.tokenized.count('@ MODERATOR'),
+            int(sentence.tokenized.count('http') > 0),
+            sum(1 for _ in re.finditer(u'[\U0001f600-\U0001f650]', sentence.tokenized))
+        ], dtype=np.float32)
+
+        embeddings_dev.append(np.hstack((embeddings, additional_features)))
         labels_dev.append(np.asarray([int(x.value) for x in sentence.labels]))
 
     embeddings_dev = np.asarray(embeddings_dev)

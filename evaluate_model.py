@@ -1,21 +1,15 @@
 from dataset import process_corpus, GermEval2021
 import fire
-from flair.embeddings import TransformerDocumentEmbeddings, WordEmbeddings, DocumentPoolEmbeddings
-import matplotlib.pyplot as plt
-import os
+from flair.embeddings import TransformerDocumentEmbeddings
 import pandas as pd
 from pathlib import Path
-import seaborn as sns
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import f1_score, precision_score, recall_score
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.svm import LinearSVC
+from sklearn.preprocessing import RobustScaler
 from tqdm import tqdm
 from typing import Union
-from xgboost import XGBClassifier
 
 
 def main(corpus_file: Union[str, Path],
@@ -26,7 +20,7 @@ def main(corpus_file: Union[str, Path],
     document_embeddings = TransformerDocumentEmbeddings('bert-base-german-cased', fine_tune=False)
 
     pipeline = Pipeline([
-        ('scaler', StandardScaler()),
+        ('scaler', RobustScaler()),
         ('classifier', MultiOutputClassifier(GaussianNB()))
     ])
 
@@ -44,6 +38,7 @@ def main(corpus_file: Union[str, Path],
 
             for task_idx, task in enumerate(tasks):
                 results_list.append({
+                    'accuracy': accuracy_score(labels_dev[:, task_idx], predictions[:, task_idx]),
                     'precision': precision_score(labels_dev[:, task_idx], predictions[:, task_idx]),
                     'recall': recall_score(labels_dev[:, task_idx], predictions[:, task_idx]),
                     'f1': f1_score(labels_dev[:, task_idx], predictions[:, task_idx]),
@@ -56,6 +51,8 @@ def main(corpus_file: Union[str, Path],
     results = pd.DataFrame(results_list)
 
     for task in tasks:
+        accuracy_mean = results[results['task'] == task].accuracy.mean()
+        accuracy_std = results[results['task'] == task].accuracy.std()
         precision_mean = results[results['task'] == task].precision.mean()
         precision_std = results[results['task'] == task].precision.std()
         recall_mean = results[results['task'] == task].recall.mean()
@@ -63,8 +60,8 @@ def main(corpus_file: Union[str, Path],
         f1_score_mean = results[results['task'] == task].f1.mean()
         f1_score_std = results[results['task'] == task].f1.std()
 
-        print('{:13s} === Precision: {:0.4f} +/- {:0.4f}, Recall: {:0.4f} +/- {:0.4f}, F1-Score: {:0.4f} +/- {:0.4f}'.format(
-            task, precision_mean, precision_std, recall_mean, recall_std, f1_score_mean, f1_score_std)
+        print('{:13s} === Accuracy: {:0.4f} +/- {:0.4f}, Precision: {:0.4f} +/- {:0.4f}, Recall: {:0.4f} +/- {:0.4f}, F1-Score: {:0.4f} +/- {:0.4f}'.format(
+            task, accuracy_mean, accuracy_std, precision_mean, precision_std, recall_mean, recall_std, f1_score_mean, f1_score_std)
         )
 
 

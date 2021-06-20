@@ -7,23 +7,10 @@ from tqdm import tqdm
 
 dataset = pd.read_csv('./data/GermEval21_Toxic_Train.csv')
 
-sentiment_model = SentimentModel()
-
-
-def positive_sentiment(x: str) -> float:
-    return positive_sentiment_logits(x, sentiment_model)
-
-
-def negative_sentiment(x: str) -> float:
-    return negative_sentiment_logits(x, sentiment_model)
-
-
-def neutral_sentiment(x: str) -> float:
-    return neutral_sentiment_logits(x, sentiment_model)
 
 features = [
-    log_num_characters, log_average_word_length, log_word_length_std, positive_sentiment, negative_sentiment,
-    neutral_sentiment
+    log_num_characters, log_average_word_length, log_word_length_std, positive_sentiment_logits,
+    negative_sentiment_logits, neutral_sentiment_logits
 ]
 
 for feature in features:

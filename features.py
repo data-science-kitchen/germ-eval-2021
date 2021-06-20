@@ -4,54 +4,6 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import torch
 
 
-def log_num_characters(text: str) -> float:
-    """
-    Args:
-        text (str):
-    """
-    return np.log(len(text) + 1e-9)
-
-
-def log_num_tokens(text: str) -> float:
-    """
-    Args:
-        text (str):
-    """
-    return np.log(len(text.split()) + 1e-9)
-
-
-def log_average_word_length(text: str) -> float:
-    """
-    Args:
-        text (str):
-    """
-    word_lengths = [len(x) for x in text.split()]
-
-    return np.log(np.mean(word_lengths) + 1e-9)
-
-
-def log_word_length_std(text: str) -> float:
-    """
-    Args:
-        text (str):
-    """
-    word_lengths = [len(x) for x in text.split()]
-
-    return np.log(np.std(word_lengths) + 1e-9)
-
-
-def positive_sentiment_logits(text: str, model: callable) -> float:
-    return model(text)[0]
-
-
-def negative_sentiment_logits(text: str, model: callable) -> float:
-    return model(text)[1]
-
-
-def neutral_sentiment_logits(text: str, model: callable) -> float:
-    return model(text)[2]
-
-
 class SentimentModel:
     MAX_NUM_TOKENS = 512
 
@@ -99,58 +51,52 @@ class SentimentModel:
             .replace('8', ' acht').replace('9', ' neun')
 
 
-def _sentiment_clean_text(text: str) -> str:
+SENTIMENT_MODEL = SentimentModel()
+
+
+def log_num_characters(text: str) -> float:
     """
     Args:
         text (str):
     """
-    clean_chars = re.compile(r'[^A-Za-züöäÖÜÄß ]', re.MULTILINE)
-    clean_http_urls = re.compile(r'https*\S+', re.MULTILINE)
-    clean_at_mentions = re.compile(r'@\S+', re.MULTILINE)
-
-    text = text.replace("\n", " ")
-    text = clean_http_urls.sub('', text)
-    text = clean_at_mentions.sub('', text)
-    text = _sentiment_replace_numbers(text)
-    text = clean_chars.sub('', text)
-    text = ' '.join(text.split())
-    text = text.strip().lower()
-
-    return text
+    return np.log(len(text) + 1e-9)
 
 
-def _sentiment_replace_numbers(text: str) -> str:
+def log_num_tokens(text: str) -> float:
     """
     Args:
         text (str):
     """
-    return text.replace('0', ' null').replace('1', ' eins').replace('2', ' zwei').replace('3', ' drei') \
-        .replace('4', ' vier').replace('5', ' fünf').replace('6', ' sechs').replace('7', ' sieben') \
-        .replace('8', ' acht').replace('9', ' neun')
+    return np.log(len(text.split()) + 1e-9)
 
 
-def _sentiment_get_logits(text: str,
-                          max_num_tokens: int = 512) -> np.array:
+def log_average_word_length(text: str) -> float:
     """
     Args:
         text (str):
-        max_num_tokens (int):
     """
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    word_lengths = [len(x) for x in text.split()]
 
-    model = AutoModelForSequenceClassification.from_pretrained('oliverguhr/german-sentiment-bert')
-    model = model.to(device)
+    return np.log(np.mean(word_lengths) + 1e-9)
 
-    tokenizer = AutoTokenizer.from_pretrained('oliverguhr/german-sentiment-bert')
 
-    input_ids = tokenizer.batch_encode_plus([text], padding=True, add_special_tokens=True)
-    input_ids = torch.tensor(input_ids['input_ids'])
-    input_ids = input_ids.to(device)
+def log_word_length_std(text: str) -> float:
+    """
+    Args:
+        text (str):
+    """
+    word_lengths = [len(x) for x in text.split()]
 
-    if input_ids.shape[-1] > max_num_tokens:
-        input_ids = input_ids[:, :max_num_tokens]
+    return np.log(np.std(word_lengths) + 1e-9)
 
-    with torch.no_grad():
-        result = model(input_ids)
 
-    return result.logits.squeeze().detach().cpu().numpy()
+def positive_sentiment_logits(text: str) -> float:
+    return SENTIMENT_MODEL(text)[0]
+
+
+def negative_sentiment_logits(text: str) -> float:
+    return SENTIMENT_MODEL(text)[1]
+
+
+def neutral_sentiment_logits(text: str) -> float:
+    return SENTIMENT_MODEL(text)[2]

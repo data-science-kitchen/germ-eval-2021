@@ -36,7 +36,7 @@ class FeatureExtractor:
 
             for subset in [corpus.train, corpus.dev]:
                 features = np.zeros((len(subset), feature_dim), dtype=np.float32)
-                labels = np.zeros((len(subset), 3), dtype=np.int32)
+                labels = np.zeros((len(subset), 3), dtype=np.float32)
 
                 for sentence_idx, sentence in enumerate(subset):
                     for feature_idx, feature_func in enumerate(self.features):
@@ -46,7 +46,7 @@ class FeatureExtractor:
                         self.document_embeddings.embed(sentence)
                         features[sentence_idx, len(self.features):] = sentence.embedding.cpu().detach().numpy()
 
-                    labels[sentence_idx, :] = np.asarray([int(x.value) for x in sentence.labels])
+                    labels[sentence_idx, :] = np.asarray([x.value for x in sentence.labels])
 
                 output.append((features, labels))
 

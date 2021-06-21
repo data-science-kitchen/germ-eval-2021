@@ -1,20 +1,22 @@
+import copy
 from dataset import GermEval2021
 from features import *
 import fire
 from flair.embeddings import TransformerDocumentEmbeddings
+from models import GermEvalMLP
 import pandas as pd
 from pathlib import Path
+from scipy.sparse import lil_matrix
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-from sklearn.multioutput import MultiOutputClassifier
-from sklearn.naive_bayes import GaussianNB
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import RobustScaler
+from skorch import NeuralNet
 from tqdm import tqdm
+import torch.nn as nn
 from typing import Union
 
 
-def main(corpus_file: Union[str, Path],
-         random_seed: int = 42) -> None:
+def main(corpus_file: Union[str, Path]) -> None:
     results_list = []
     tasks = ['Toxic', 'Engaging', 'FactClaiming']
 
@@ -27,22 +29,33 @@ def main(corpus_file: Union[str, Path],
 
     feature_extractor = FeatureExtractor(features, document_embeddings=document_embeddings)
 
-    pipeline = Pipeline([
-        ('scaler', RobustScaler()),
-        ('classifier', MultiOutputClassifier(GaussianNB()))
-    ])
+    model = NeuralNet(
+        GermEvalMLP(feature_dim=len(features), embedding_dim=document_embeddings.embedding_length),
+        max_epochs=200,
+        criterion=nn.BCELoss,
+        lr=0.01
+    )
 
     with tqdm(total=4) as progress_bar:
         for fold_idx in range(4):
             corpus = GermEval2021(corpus_file, fold=fold_idx)
             
-            data_train, data_dev = feature_extractor.compute_features(corpus, save_file='features_fold{}.npz'.format(fold_idx))
+            data_train, data_dev = feature_extractor.compute_features(corpus,
+                                                                      save_file='features_fold{}.npz'.format(fold_idx))
 
             features_train, labels_train = data_train
             features_dev, labels_dev = data_dev
 
+            pipeline = Pipeline([
+                ('scaler', RobustScaler()),
+                ('classifier', copy.deepcopy(model))
+            ])
+
             pipeline.fit(features_train, labels_train)
-            predicted_labels = pipeline.predict(features_dev)
+            predicted_labels = (pipeline.predict(features_dev) > 0.5).astype(int)
+
+            if isinstance(predicted_labels, lil_matrix):
+                predicted_labels = predicted_labels.toarray()
 
             for task_idx, task in enumerate(tasks):
                 results_list.append({

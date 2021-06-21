@@ -1,0 +1,12 @@
+numpy==1.20.0
+torch==1.9.0
+skorch==0.10.0
+tqdm==4.61.0
+matplotlib==3.4.2
+seaborn==0.11.1
+scipy==1.6.3
+flair==0.8.1
+fire==0.4.0
+transformers==4.8.0.dev0
+pandas==1.2.4
+scikit_learn==0.24.2

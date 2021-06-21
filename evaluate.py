@@ -13,10 +13,14 @@ from sklearn.preprocessing import RobustScaler
 from skorch import NeuralNet
 from tqdm import tqdm
 import torch.nn as nn
-from typing import Union
+from typing import Optional, Union
 
 
-def main(corpus_file: Union[str, Path]) -> None:
+def main(corpus_file: Union[str, Path],
+         tmp_dir: Optional[Union[str, Path]] = None) -> None:
+    if tmp_dir is not None and not os.path.isdir(tmp_dir):
+        os.makedirs(tmp_dir)
+
     results_list = []
     tasks = ['Toxic', 'Engaging', 'FactClaiming']
 
@@ -39,9 +43,12 @@ def main(corpus_file: Union[str, Path]) -> None:
     with tqdm(total=4) as progress_bar:
         for fold_idx in range(4):
             corpus = GermEval2021(corpus_file, fold=fold_idx)
-            
-            data_train, data_dev = feature_extractor.compute_features(corpus,
-                                                                      save_file='features_fold{}.npz'.format(fold_idx))
+
+            if tmp_dir is not None:
+                save_file = os.path.join(tmp_dir, 'features_fold{}.npz'.format(fold_idx))
+            else:
+                save_file = None
+            data_train, data_dev = feature_extractor.compute_features(corpus, save_file=save_file)
 
             features_train, labels_train = data_train
             features_dev, labels_dev = data_dev
@@ -81,9 +88,12 @@ def main(corpus_file: Union[str, Path]) -> None:
         f1_score_mean = results[results['task'] == task].f1.mean()
         f1_score_std = results[results['task'] == task].f1.std()
 
-        print('{:13s} === Accuracy: {:0.4f} +/- {:0.4f}, Precision: {:0.4f} +/- {:0.4f}, Recall: {:0.4f} +/- {:0.4f}, F1-Score: {:0.4f} +/- {:0.4f}'.format(
-            task, accuracy_mean, accuracy_std, precision_mean, precision_std, recall_mean, recall_std, f1_score_mean, f1_score_std)
-        )
+        print('{:13s} === '
+              'Accuracy: {:0.4f} +/- {:0.4f}, '
+              'Precision: {:0.4f} +/- {:0.4f}, '
+              'Recall: {:0.4f} +/- {:0.4f}, '
+              'F1-Score: {:0.4f} +/- {:0.4f}'.format(task, accuracy_mean, accuracy_std, precision_mean, precision_std,
+                                                     recall_mean, recall_std, f1_score_mean, f1_score_std))
 
 
 if __name__ == '__main__':

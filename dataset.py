@@ -1,11 +1,8 @@
-from flair.data import Corpus
 from flair.datasets import CSVClassificationCorpus
-from flair.embeddings import DocumentEmbeddings
-import numpy as np
 import pandas as pd
 from pathlib import Path
 import os
-from typing import Tuple, Union
+from typing import Union
 
 
 class GermEval2021(CSVClassificationCorpus):

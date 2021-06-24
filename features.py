@@ -1,5 +1,7 @@
-from flair.data import Corpus
+from flair.data import Corpus, Sentence, Token
 from flair.embeddings import DocumentEmbeddings
+from flair.models import SequenceTagger, TextClassifier
+
 import numpy as np
 import os
 from pathlib import Path
@@ -7,6 +9,8 @@ import re
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import torch
 from typing import Callable, List, Optional, Tuple, Union
+
+from spellchecker import SpellChecker
 
 
 class FeatureExtractor:
@@ -110,6 +114,32 @@ class SentimentModel:
 
 
 SENTIMENT_MODEL = SentimentModel()
+
+GERMAN_SPELLCHECKER = SpellChecker(language='de')
+
+DE_POS_TAGGER = SequenceTagger.load('de-pos')
+
+
+def spellcheck_quality(text: str) -> float:
+    sentence = Sentence(text)
+    DE_POS_TAGGER.predict(sentence)
+    total_word_count = 0
+    misspelled_count = 0
+    for token in sentence:
+        if len(token.labels) > 0:
+            token_label = token.labels[0].value
+            if '$' not in token_label and 'FM' not in token_label and 'NE' not in token_label:
+                total_word_count += 1
+                misspelled_word = GERMAN_SPELLCHECKER.unknown([token.text])
+                if len(misspelled_word) > 0:
+                    for mw in misspelled_word:
+                        if token.text.lower() != GERMAN_SPELLCHECKER.correction(mw):
+                            misspelled_count += 1
+
+    if total_word_count > 0 and misspelled_count > 0:
+        return np.log(np.divide(misspelled_count, total_word_count))
+    else:
+        return np.log(0.0 + 1e-9)
 
 
 def log_num_characters(text: str) -> float:

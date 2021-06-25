@@ -4,6 +4,7 @@ import numpy as np
 import os
 from pathlib import Path
 import re
+from spellchecker import SpellChecker
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import torch
 from typing import Callable, List, Optional, Tuple, Union
@@ -158,3 +159,16 @@ def negative_sentiment_logits(text: str) -> float:
 
 def neutral_sentiment_logits(text: str) -> float:
     return SENTIMENT_MODEL(text)[2]
+
+
+def spelling_mistake_log_odds(text: str) -> float:
+    """
+    Args:
+        text (str):
+    """
+    spell = SpellChecker(language='de')
+
+    tokens = text.split()
+    mistakes = spell.unknown(tokens)
+
+    return np.log(len(mistakes) + 1e-9) - np.log(len(tokens) + 1e-9)

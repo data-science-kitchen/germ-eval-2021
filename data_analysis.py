@@ -9,8 +9,7 @@ dataset = pd.read_csv('./data/GermEval21_Toxic_Train.csv')
 
 
 features = [
-    log_num_characters, log_average_word_length, log_word_length_std, positive_sentiment_logits,
-    negative_sentiment_logits, neutral_sentiment_logits
+    log_num_characters, log_average_word_length, log_word_length_std, spelling_mistake_log_odds
 ]
 
 for feature in features:

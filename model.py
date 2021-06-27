@@ -1,9 +1,12 @@
 from features import Feature
+import joblib
 import numpy as np
 import optuna
-from sklearn.base import BaseEstimator, TransformerMixin
+import os
+from pathlib import Path
+from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
 from sklearn.decomposition import TruncatedSVD
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.metrics import f1_score
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -22,10 +25,25 @@ class FeatureSplitter(BaseEstimator, TransformerMixin):
         return self
 
 
-class GermEvalModel:
+class EnsembleVotingClassifier(ClassifierMixin):
+    def __init__(self, base_classifiers: List[ClassifierMixin]) -> None:
+        self.base_classifiers = base_classifiers
+
+    def predict(self, features: np.array) -> np.array:
+        num_samples, num_classifiers = features.shape[0], len(self.base_classifiers)
+        predictions = np.zeros((num_samples, num_classifiers, 3))
+
+        for idx, classifier in enumerate(self.base_classifiers):
+            predictions[:, idx, :] = classifier.predict(features)
+
+        return (predictions.sum(axis=1) > num_classifiers / 2).astype(np.int64)
+
+
+class GermEvalModel(ClassifierMixin):
     def __init__(self,
                  feature_funcs: List[Feature]) -> None:
         self.feature_funcs = feature_funcs
+        self.model = None
 
         feature_types = self._get_feature_type()
         self.num_numerical_features = np.asarray([x == 'numerical' for x in feature_types], dtype=bool).sum()
@@ -36,13 +54,30 @@ class GermEvalModel:
             labels_train: np.array,
             features_valid: Optional[np.array] = None,
             labels_valid: Optional[np.array] = None,
-            num_trials: int = 100) -> None:
-        study = optuna.create_study(directions=['maximize'])
-        study.optimize(lambda x: self._tuning_objective(x, features_train, labels_train, features_valid, labels_valid),
-                       n_trials=num_trials,
-                       gc_after_trial=True)
+            num_trials: int = 100,
+            save_file: Optional[Union[str, Path]] = None) -> None:
+        if save_file is not None and os.path.isfile(save_file):
+            model = joblib.load(save_file)
+        else:
+            study = optuna.create_study(directions=['maximize'])
+            study.optimize(lambda x: self._tuning_objective(x, features_train, labels_train, features_valid, labels_valid),
+                           n_trials=num_trials,
+                           gc_after_trial=True)
 
-        raise NotImplementedError
+            model = self._get_model(
+                svd_num_components=study.best_params['svd_num_components'], svm_penalty=study.best_params['svm_penalty']
+            )
+            model.fit(features_train, labels_train)
+
+            joblib.dump(model, save_file)
+
+        self.model = model
+
+    def predict(self, features: np.array) -> np.array:
+        if self.model is not None:
+            return self.model.predict(features)
+        else:
+            raise ValueError('No trained model found. Please run .fit() first.')
 
     def _get_feature_type(self):
         feature_type = []
@@ -68,7 +103,7 @@ class GermEvalModel:
             feature_pipeline += [('numerical_split', FeatureSplitter(numerical_features))]
 
         if embedding_features.sum() > 0:
-            feature_pipeline += [(Pipeline([
+            feature_pipeline += [('embedding_pipeline', Pipeline([
                 ('embedding_split', FeatureSplitter(embedding_features)),
                 ('embedding_scaler', StandardScaler()),
                 ('embeddings_svd', TruncatedSVD(n_components=svd_num_components))

@@ -1,21 +1,59 @@
-import copy
-from dataset import GermEval2021
+from dataset import GermEval2021, GermEval2021Test
 from features import *
 import fire
 from flair.embeddings import TransformerDocumentEmbeddings
-from models import GermEvalMLP
+import joblib
+import optuna
+import os
 import pandas as pd
 from pathlib import Path
-import optuna
-from scipy.sparse import lil_matrix
+from sklearn.multioutput import MultiOutputClassifier
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import RobustScaler
-from skorch import NeuralNet
+from sklearn.pipeline import FeatureUnion, Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
 from tqdm import tqdm
-import torch
-import torch.nn as nn
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
+
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.decomposition import TruncatedSVD
+
+
+class FeatureSplitter(BaseEstimator, TransformerMixin):
+    def __init__(self,
+                 feature_range: Tuple[int, int]):
+        self.feature_range = feature_range
+
+    def transform(self, X):
+        return X[..., self.feature_range[0]:self.feature_range[1]]
+
+    def fit(self, X, y):
+        return self
+
+
+def get_pipeline(feature_dim: int,
+                 embedding_dim: int,
+                 svd_num_components: Optional[int] = None,
+                 svm_penalty: Optional[float] = 1.0):
+    if svd_num_components is None:
+        svd_num_components = embedding_dim
+
+    pipeline = Pipeline([
+        ('processed_features', FeatureUnion([
+            ('numerical_processor', Pipeline([
+                ('numerical_split', FeatureSplitter(feature_range=(0, feature_dim)))
+            ])),
+            ('embeddings_processor', Pipeline([
+                ('embeddings_split', FeatureSplitter(feature_range=(feature_dim, feature_dim + embedding_dim))),
+                ('embeddings_scaler', StandardScaler()),
+                ('embeddings_svd', TruncatedSVD(n_components=svd_num_components))
+             ])),
+        ])),
+        ('feature_scaler', StandardScaler()),
+        ('classifier', MultiOutputClassifier(SVC(C=svm_penalty), n_jobs=-1))
+    ])
+
+    return pipeline
 
 
 def objective_function(trial: optuna.Trial,
@@ -24,43 +62,27 @@ def objective_function(trial: optuna.Trial,
                        features_dev: np.array,
                        labels_dev: np.array,
                        feature_dim: int,
-                       embedding_dim: int,
-                       device='cpu') -> Tuple[float, float, float]:
-    model = NeuralNet(
-        GermEvalMLP(feature_dim=feature_dim,
-                    embedding_dim=embedding_dim,
-                    hidden_dim=trial.suggest_categorical('hidden_dim', [4, 8, 16, 32, 64]),
-                    dropout_rate=trial.suggest_uniform('dropout_rate', 0.0, 0.9)),
-        max_epochs=trial.suggest_categorical('max_epochs', [50, 100, 150, 200, 250, 300]),
-        criterion=nn.BCELoss,
-        lr=trial.suggest_loguniform('learning_rate', 1e-5, 0.01),
-        optimizer=torch.optim.SGD,
-        batch_size=trial.suggest_categorical('batch_size', [8, 16, 32, 64, 128]),
-        verbose=0,
-        device=device
-    )
+                       embedding_dim: int) -> Tuple[float, float, float]:
 
-    pipeline = Pipeline([
-        ('scaler', RobustScaler()),
-        ('classifier', copy.deepcopy(model))
-    ])
+    pipeline = get_pipeline(feature_dim,
+                            embedding_dim,
+                            trial.suggest_int('svd_num_components', 1, embedding_dim - 1),
+                            trial.suggest_loguniform('svm_penalty', 0.1, 1e4))
 
     pipeline.fit(features_train, labels_train)
 
-    classification_threshold = trial.suggest_uniform('classification_threshold', 0.05, 0.95)
-    predicted_labels = (pipeline.predict(features_dev) > classification_threshold).astype(int)
+    predictions = pipeline.predict(features_dev)
 
-    score_toxic = f1_score(labels_dev[:, 0], predicted_labels[:, 0], average='macro')
-    score_engaging = f1_score(labels_dev[:, 1], predicted_labels[:, 1], average='macro')
-    score_fact_claiming = f1_score(labels_dev[:, 2], predicted_labels[:, 2], average='macro')
+    score_toxic = f1_score(labels_dev[:, 0], predictions[:, 0], average='macro')
+    score_engaging = f1_score(labels_dev[:, 1], predictions[:, 1], average='macro')
+    score_fact_claiming = f1_score(labels_dev[:, 2], predictions[:, 2], average='macro')
 
-    return score_toxic, score_engaging, score_fact_claiming
+    return (score_toxic + score_engaging + score_fact_claiming) / 3.
 
 
 def main(corpus_file: Union[str, Path],
-         tmp_dir: Optional[Union[str, Path]] = None) -> None:
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
+         tmp_dir: Optional[Union[str, Path]] = None,
+         num_trials: int = 100) -> None:
     if tmp_dir is not None and not os.path.isdir(tmp_dir):
         os.makedirs(tmp_dir)
 
@@ -82,53 +104,40 @@ def main(corpus_file: Union[str, Path],
 
             if tmp_dir is not None:
                 save_file = os.path.join(tmp_dir, 'features_fold{}.npz'.format(fold_idx))
+                model_file = os.path.join(tmp_dir, 'model_fold{}.pkl'.format(fold_idx))
             else:
                 save_file = None
+                model_file = None
+
             data_train, data_dev = feature_extractor.compute_features(corpus, save_file=save_file)
 
             features_train, labels_train = data_train
             features_dev, labels_dev = data_dev
 
-            sampler = optuna.samplers.NSGAIISampler()
-            study = optuna.create_study(directions=['maximize', 'maximize', 'maximize'], sampler=sampler)
+            if os.path.isfile(model_file):
+                pipeline = joblib.load(model_file)
+            else:
+                study = optuna.create_study(directions=['maximize'])
 
-            study.optimize(lambda x: objective_function(x,
-                                                        features_train,
-                                                        labels_train,
-                                                        features_dev,
-                                                        labels_dev,
-                                                        len(features),
-                                                        document_embeddings.embedding_length,
-                                                        device=device),
-                           n_trials=250,
-                           gc_after_trial=True,
-                           n_jobs=-1)
+                feature_dim, embedding_dim = len(features), document_embeddings.embedding_length
 
-            print(study.best_params)
+                study.optimize(
+                    lambda x: objective_function(x, features_train, labels_train, features_dev, labels_dev, feature_dim,
+                                                 embedding_dim),
+                    n_trials=num_trials,
+                    gc_after_trial=True
+                )
 
-            model = NeuralNet(
-                GermEvalMLP(feature_dim=len(features),
-                            embedding_dim=document_embeddings.embedding_length,
-                            hidden_dim=study.best_params['hidden_dim'],
-                            dropout_rate=study.best_params['dropout_rate']),
-                max_epochs=study.best_params['max_epochs'],
-                criterion=nn.BCELoss,
-                lr=study.best_params['learning_rate'],
-                optimizer=torch.optim.SGD,
-                batch_size=study.best_params['batch_size'],
-                device=device
-            )
+                pipeline = get_pipeline(feature_dim,
+                                        embedding_dim,
+                                        study.best_params['svd_num_components'],
+                                        study.best_params['svm_penalty'])
 
-            pipeline = Pipeline([
-                ('scaler', RobustScaler()),
-                ('classifier', copy.deepcopy(model))
-            ])
+                pipeline.fit(features_train, labels_train)
 
-            pipeline.fit(features_train, labels_train)
-            predicted_labels = (pipeline.predict(features_dev) > study.best_params['classification_threshold']).astype(int)
+                joblib.dump(pipeline, model_file)
 
-            if isinstance(predicted_labels, lil_matrix):
-                predicted_labels = predicted_labels.toarray()
+            predicted_labels = pipeline.predict(features_dev)
 
             for task_idx, task in enumerate(tasks):
                 results_list.append({
@@ -160,6 +169,10 @@ def main(corpus_file: Union[str, Path],
               'Recall: {:0.4f} +/- {:0.4f}, '
               'F1-Score: {:0.4f} +/- {:0.4f}'.format(task, accuracy_mean, accuracy_std, precision_mean, precision_std,
                                                      recall_mean, recall_std, f1_score_mean, f1_score_std))
+
+    test_corpus = GermEval2021Test('./data/GermEval21_Toxic_TestData.csv')
+    save_file = os.path.join(tmp_dir, 'features_test.npz')
+    data_test, _ = feature_extractor.compute_features(test_corpus, save_file=save_file)
 
 
 if __name__ == '__main__':

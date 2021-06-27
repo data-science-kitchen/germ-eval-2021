@@ -2,7 +2,7 @@ from flair.datasets import CSVClassificationCorpus
 import pandas as pd
 from pathlib import Path
 import os
-from typing import Union
+from typing import Optional, Union
 
 
 class GermEval2021(CSVClassificationCorpus):
@@ -31,5 +31,27 @@ class GermEval2021(CSVClassificationCorpus):
             train_file='train.csv',
             dev_file='dev.csv',
             test_file='dev.csv', # Test file is not used during cross-validation
+            **corpusargs
+        )
+
+
+class GermEval2021Test(CSVClassificationCorpus):
+    def __init__(self,
+                 test_file: Union[str, Path],
+                 **corpusargs):
+        data_frame = pd.read_csv(test_file, header=0, sep=',')
+
+        test_dir = Path(os.path.dirname(test_file), 'test')
+        test_dir.mkdir(parents=True, exist_ok=True)
+
+        data_frame.to_csv(test_dir / 'test.csv', index=False)
+
+        super(GermEval2021Test, self).__init__(
+            data_folder=test_dir,
+            column_name_map={0: 'comment_id', 1: 'text'},
+            skip_header=True,
+            train_file='test.csv',
+            dev_file='test.csv',
+            test_file='test.csv',
             **corpusargs
         )

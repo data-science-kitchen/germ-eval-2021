@@ -1,66 +1,126 @@
-from flair.data import Corpus
+import abc
+from flair.data import Corpus, Sentence
 from flair.embeddings import DocumentEmbeddings
+from flair.tokenization import SegtokTokenizer, Tokenizer
 import numpy as np
 import os
+import pandas as pd
 from pathlib import Path
 import re
 from spellchecker import SpellChecker
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import torch
 from typing import Callable, List, Optional, Tuple, Union
+from tqdm import tqdm
+
+
+class Feature(abc.ABC):
+    @property
+    @abc.abstractmethod
+    def dim(self) -> int:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def type(self) -> str:
+        pass
+
+    def __call__(self, text: str) -> Union[float, np.array]:
+        pass
 
 
 class FeatureExtractor:
     def __init__(self,
-                 features: List[Callable],
-                 document_embeddings: Optional[DocumentEmbeddings] = None) -> None:
-        self.features = features
-        self.document_embeddings = document_embeddings
+                 feature_funcs: List[Feature]) -> None:
+        self.feature_funcs = feature_funcs
 
-    def compute_features(self,
-                         corpus: Corpus,
-                         save_file: Optional[Union[str, Path]] = None) -> Tuple[Tuple[np.array, np.array], Tuple[np.array, np.array]]:
+    def get_features(self,
+                     dataset_file: Union[str, Path],
+                     save_file: Optional[Union[str, Path]] = None,
+                     show_progress_bar: bool = False) -> Tuple[np.array, np.array]:
         if save_file is not None and os.path.isfile(save_file):
-            output = np.load(save_file)
-
-            features_train = output['features_train']
-            labels_train = output['labels_train']
-            features_dev = output['features_dev']
-            labels_dev = output['labels_dev']
+            file = np.load(save_file, allow_pickle=True)
+            features, labels = file['features'], file['labels']
         else:
-            output = []
+            data_frame = pd.read_csv(dataset_file, header=0)
 
-            if self.document_embeddings is not None:
-                feature_dim = len(self.features) + self.document_embeddings.embedding_length
-            else:
-                feature_dim = len(self.features)
+            num_documents = len(data_frame)
+            feature_dim = self._get_feature_dim()
 
-            for subset in [corpus.train, corpus.dev]:
-                features = np.zeros((len(subset), feature_dim), dtype=np.float32)
-                labels = np.zeros((len(subset), 3), dtype=np.float32)
+            has_labels = self._check_has_labels(data_frame)
 
-                for sentence_idx, sentence in enumerate(subset):
-                    for feature_idx, feature_func in enumerate(self.features):
-                        features[sentence_idx, feature_idx] = feature_func(sentence.to_plain_string())
+            features = np.zeros((num_documents, feature_dim))
+            labels = np.zeros((num_documents, 3), dtype=np.int64) if has_labels else None
 
-                    if self.document_embeddings is not None:
-                        self.document_embeddings.embed(sentence)
-                        features[sentence_idx, len(self.features):] = sentence.embedding.cpu().detach().numpy()
+            for row in tqdm(data_frame.iterrows(),
+                            desc='Computing features', total=len(data_frame), disable=not show_progress_bar):
+                row_idx, text = row[0], row[1][1]
 
-                    labels[sentence_idx, :] = np.asarray([x.value for x in sentence.labels])
+                feature_idx = 0
+                for feature_func in self.feature_funcs:
+                    features[row_idx, feature_idx] = feature_func(text)
+                    feature_idx += feature_func.dim
 
-                output.append((features, labels))
+                if has_labels:
+                    labels[row_idx, :] = row[1][2:].to_numpy()
 
-            features_train, labels_train = output[0]
-            features_dev, labels_dev = output[1]
+            np.savez(save_file, features=features, labels=labels)
 
-            np.savez(save_file,
-                     features_train=features_train,
-                     labels_train=labels_train,
-                     features_dev=features_dev,
-                     labels_dev=labels_dev)
+        return features, labels
 
-        return (features_train, labels_train), (features_dev, labels_dev)
+    @staticmethod
+    def _check_has_labels(data_frame: pd.DataFrame) -> bool:
+        return 'Sub1_Toxic' in data_frame.columns and \
+               'Sub2_Engaging' in data_frame.columns and \
+               'Sub3_FactClaiming' in data_frame.columns
+
+    def _get_feature_dim(self):
+        feature_dim = 0
+
+        for feature_func in self.feature_funcs:
+            feature_dim += feature_func.dim
+
+        return feature_dim
+
+
+class NumCharacters(Feature):
+    def __init__(self,
+                 apply_log: bool = False) -> None:
+        self.apply_log = apply_log
+
+    @property
+    def dim(self):
+        return 1
+
+    @property
+    def type(self):
+        return 'numerical'
+
+    def __call__(self, text: str) -> float:
+        if self.apply_log:
+            return np.log(len(text) + 1e-9)
+        else:
+            return float(len(text))
+
+
+class NumTokens(Feature):
+    def __init__(self,
+                 apply_log: bool = False) -> None:
+        self.apply_log = apply_log
+
+    @property
+    def dim(self):
+        return 1
+
+    @property
+    def type(self):
+        return 'numerical'
+
+    def __call__(self, text: str) -> float:
+        if self.apply_log:
+            return np.log(len(text.split()) + 1e-9)
+        else:
+            return float(len(text.split()))
 
 
 class SentimentModel:

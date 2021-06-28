@@ -7,7 +7,8 @@ import os
 import pandas as pd
 from pathlib import Path
 import re
-from spellchecker import SpellChecker
+#from spellchecker import SpellChecker
+import language_tool_python
 from textblob_de import TextBlobDE as TextBlob
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import torch
@@ -98,21 +99,49 @@ class TokenLengthStandardDeviation(Feature):
 
 class SpellingMistakes(Feature):
     def __init__(self) -> None:
-        self.spell_checker = SpellChecker(language='de')
+        self.spell_checker = language_tool_python.LanguageTool('de')
 
     @property
     def dim(self):
-        return 1
+        return 10
 
     @property
     def type(self):
         return 'numerical'
 
-    def __call__(self, text: str) -> float:
-        tokens = text.split()
-        mistakes = self.spell_checker.unknown(tokens)
+    def __call__(self, text: str) -> np.array:
+        mistakes = self.spell_checker.check(text)
 
-        return np.log(len(mistakes) + 1e-9) - np.log(len(tokens) + 1e-9)
+        output = np.zeros((1, 10))
+
+        if len(mistakes) > 0:
+            for mistake in mistakes:
+                if mistake.category == 'MISC':
+                    output[0, 0] += 1
+                if mistake.category == 'EMPFOHLENE_RECHTSCHREIBUNG':
+                    output[0, 1] += 1
+                if mistake.category == 'TYPOGRAPHY' and \
+                        mistake.ruleId not in ['TYPOGRAFISCHE_ANFUEHRUNGSZEICHEN',
+                                               'FALSCHE_VERWENDUNG_DES_BINDESTRICHS',
+                                               'AKZENT_STATT_APOSTROPH', 'MULTIPLICATION_SIGN']:
+                    output[0, 2] += 1
+                if mistake.category == 'PUNCTUATION' and \
+                        mistake.ruleId not in ['EINHEIT_LEERZEICHEN', 'ZEICHENSETZUNG_DIREKTE_REDE']:
+                    output[0, 3] += 1
+                if mistake.category == 'GRAMMAR':
+                    output[0, 4] += 1
+                if mistake.category == 'CASING':
+                    output[0, 5] += 1
+                if mistake.category == 'HILFESTELLUNG_KOMMASETZUNG':
+                    output[0, 6] += 1
+                if mistake.category == 'COLLOQUIALISMS':
+                    output[0, 7] += 1
+                if mistake.category == 'COMPOUNDING':
+                    output[0, 8] += 1
+                if mistake.category == 'CONFUSED_WORDS':
+                    output[0, 9] += 1
+
+        return np.log(output + 1e-9) - np.log(len(text.split()) + 1e-9)
 
 
 class DocumentEmbeddingsFastTextPool(Feature):

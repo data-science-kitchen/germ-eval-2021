@@ -1,6 +1,6 @@
 import abc
-from flair.data import Corpus, Sentence
-from flair.embeddings import DocumentEmbeddings
+from flair.data import Sentence
+from flair.embeddings import DocumentPoolEmbeddings, WordEmbeddings
 from flair.embeddings import TransformerDocumentEmbeddings
 import numpy as np
 import os
@@ -8,9 +8,10 @@ import pandas as pd
 from pathlib import Path
 import re
 from spellchecker import SpellChecker
+from textblob_de import TextBlobDE as TextBlob
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import torch
-from typing import Callable, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 from tqdm import tqdm
 
 
@@ -30,9 +31,8 @@ class Feature(abc.ABC):
 
 
 class NumCharacters(Feature):
-    def __init__(self,
-                 apply_log: bool = False) -> None:
-        self.apply_log = apply_log
+    def __init__(self) -> None:
+        pass
 
     @property
     def dim(self):
@@ -43,16 +43,12 @@ class NumCharacters(Feature):
         return 'numerical'
 
     def __call__(self, text: str) -> float:
-        if self.apply_log:
-            return np.log(len(text) + 1e-9)
-        else:
-            return float(len(text))
+        return np.log(len(text) + 1e-9)
 
 
 class NumTokens(Feature):
-    def __init__(self,
-                 apply_log: bool = False) -> None:
-        self.apply_log = apply_log
+    def __init__(self) -> None:
+        pass
 
     @property
     def dim(self):
@@ -63,16 +59,12 @@ class NumTokens(Feature):
         return 'numerical'
 
     def __call__(self, text: str) -> float:
-        if self.apply_log:
-            return np.log(len(text.split()) + 1e-9)
-        else:
-            return float(len(text.split()))
+        return np.log(len(text.split()) + 1e-9)
 
 
 class AverageTokenLength(Feature):
-    def __init__(self,
-                 apply_log: bool = False) -> None:
-        self.apply_log = apply_log
+    def __init__(self) -> None:
+        pass
 
     @property
     def dim(self):
@@ -84,17 +76,12 @@ class AverageTokenLength(Feature):
 
     def __call__(self, text: str) -> float:
         word_lengths = [len(x) for x in text.split()]
-
-        if self.apply_log:
-            return np.log(np.mean(word_lengths) + 1e-9)
-        else:
-            return np.mean(word_lengths)
+        return np.log(np.mean(word_lengths) + 1e-9)
 
 
 class TokenLengthStandardDeviation(Feature):
-    def __init__(self,
-                 apply_log: bool = False) -> None:
-        self.apply_log = apply_log
+    def __init__(self) -> None:
+        pass
 
     @property
     def dim(self):
@@ -106,11 +93,7 @@ class TokenLengthStandardDeviation(Feature):
 
     def __call__(self, text: str) -> float:
         word_lengths = [len(x) for x in text.split()]
-
-        if self.apply_log:
-            return np.log(np.std(word_lengths) + 1e-9)
-        else:
-            return np.std(word_lengths)
+        return np.log(np.std(word_lengths) + 1e-9)
 
 
 class SpellingMistakes(Feature):
@@ -132,6 +115,26 @@ class SpellingMistakes(Feature):
         return np.log(len(mistakes) + 1e-9) - np.log(len(tokens) + 1e-9)
 
 
+class DocumentEmbeddingsFastTextPool(Feature):
+    def __init__(self) -> None:
+        word_embeddings = WordEmbeddings('de')
+        self.document_embeddings = DocumentPoolEmbeddings([word_embeddings])
+
+    @property
+    def dim(self):
+        return 300
+
+    @property
+    def type(self):
+        return 'embedding'
+
+    def __call__(self, text: str) -> float:
+        sentence = Sentence(text)
+        self.document_embeddings.embed(sentence)
+
+        return sentence.embedding.detach().cpu().numpy()
+
+
 class DocumentEmbeddingsBERT(Feature):
     def __init__(self) -> None:
         self.embeddings = TransformerDocumentEmbeddings('bert-base-german-cased', fine_tune=False)
@@ -149,6 +152,24 @@ class DocumentEmbeddingsBERT(Feature):
         self.embeddings.embed(sentence)
 
         return sentence.embedding.detach().cpu().numpy()
+
+
+class SentimentTextBlob(Feature):
+    def __init__(self) -> None:
+        pass
+
+    @property
+    def dim(self):
+        return 1
+
+    @property
+    def type(self):
+        return 'numerical'
+
+    def __call__(self, text: str) -> float:
+        blob = TextBlob(text)
+
+        return blob.sentiment.polarity
 
 
 class SentimentBERT(Feature):

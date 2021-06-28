@@ -3,7 +3,24 @@ import numpy as np
 from pathlib import Path
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.preprocessing import LabelEncoder
-from typing import Dict, Optional, Union
+from typing import Dict, Union
+import yaml
+
+
+def read_config(config_file: Union[str, Path]) -> Dict:
+    with open(config_file, 'r') as file:
+        config_data = yaml.load(file, Loader=yaml.SafeLoader)
+
+    config_data['feature_funcs'] = []
+
+    for feature in config_data['features']:
+        try:
+            feature_func = getattr(__import__('features', fromlist=[feature]), feature)
+            config_data['feature_funcs'].append(feature_func())
+        except BaseException as err:
+            print('Error when loading module {}: {}'.format(feature, str(err)))
+
+    return config_data
 
 
 def multilabel_to_multiclass(labels: np.array) -> np.array:

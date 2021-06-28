@@ -11,7 +11,7 @@ from sklearn.multioutput import MultiOutputClassifier
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Union
 
 
 class FeatureSplitter(BaseEstimator, TransformerMixin):
@@ -36,7 +36,7 @@ class EnsembleVotingClassifier(ClassifierMixin):
         for idx, classifier in enumerate(self.base_classifiers):
             predictions[:, idx, :] = classifier.predict(features)
 
-        return (predictions.sum(axis=1) > num_classifiers / 2).astype(np.int64)
+        return (predictions.sum(axis=1) >= num_classifiers / 2.).astype(np.int64)
 
 
 class GermEvalModel(ClassifierMixin):

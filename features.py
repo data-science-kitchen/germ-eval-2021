@@ -30,6 +30,7 @@ class Feature(abc.ABC):
     def __call__(self, text: str) -> Union[float, np.array]:
         pass
 
+
 class NumUserAdressed(Feature):
     def __init__(self) -> None:
         pass
@@ -45,6 +46,7 @@ class NumUserAdressed(Feature):
     def __call__(self, text: str) -> float:
         user_adressed = np.sum([token == '@user' for token in text.lower().split()])
         return np.log(user_adressed + 1e-9)
+
 
 class NumMediumAdressed(Feature):
     def __init__(self) -> None:
@@ -62,6 +64,7 @@ class NumMediumAdressed(Feature):
         medium_adressed = np.sum([token == '@medium' for token in text.lower().split()])
         return np.log(medium_adressed + 1e-9)
 
+
 class NumReferences(Feature):
     def __init__(self) -> None:
         pass
@@ -77,6 +80,7 @@ class NumReferences(Feature):
     def __call__(self, text: str) -> float:
         refs = re.findall(r'http*\S+', text)
         return np.log(len(refs) + 1e-9)
+
 
 class ExclamationMarkRatio(Feature):
     def __init__(self) -> None:
@@ -94,28 +98,31 @@ class ExclamationMarkRatio(Feature):
         exclamation_mark_ratio = np.sum([char=='!' for char in text]) / len(text)
         return exclamation_mark_ratio * 10
 
-class NumWordsInQuotes(Feature):
-    def __init__(self) -> None:
-        pass
-    
-    @property
-    def dim(self):
-        return 1
-    
-    @property
-    def type(self):
-        return 'numerical'
-    
-    def __call__(self, text: str) -> float:
-        x = re.findall("'.'|"."", text) # words in the single quotation and double quotation.
-        count=0
-        if x is None:
-            return 0
-        else:
-            for i in x:
-                t=i[1:-1]
-                count+=count_words(t)
-    return np.log(count + 1e-9)
+
+# class NumWordsInQuotes(Feature):
+#     def __init__(self) -> None:
+#         pass
+#
+#     @property
+#     def dim(self):
+#         return 1
+#
+#     @property
+#     def type(self):
+#         return 'numerical'
+#
+#     def __call__(self, text: str) -> float:
+#         x = re.findall("'.'|"."", text) # words in the single quotation and double quotation.
+#         count=0
+#         if x is None:
+#             return 0
+#         else:
+#             for i in x:
+#                 t=i[1:-1]
+#                 count+=count_words(t)
+#
+#         return np.log(count + 1e-9)
+
 
 class StopwordRatio(Feature):
     def __init__(self) -> None:
@@ -132,7 +139,9 @@ class StopwordRatio(Feature):
     def __call__(self, text: str) -> float:
         tokens = text.lower().split()
         ratio = np.sum([token in stopwords['german'] for token in tokens]) / len(tokens)
-    return np.log(ratio + 0.5 + 1e-9)
+
+        return np.log(ratio + 0.5 + 1e-9)
+
 
 class NumCharacters(Feature):
     def __init__(self) -> None:

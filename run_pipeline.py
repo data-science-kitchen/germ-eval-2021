@@ -1,6 +1,7 @@
 import copy
 from features import FeatureExtractor
 import fire
+import matplotlib.pyplot as plt
 from model import EnsembleVotingClassifier, GermEvalModel
 import os
 import pandas as pd
@@ -14,6 +15,7 @@ def main(train_file: Union[str, Path],
          test_file: Union[str, Path],
          config_file: Union[str, Path],
          tmp_dir: Union[str, Path] = './tmp',
+         top_k: int = 10,
          show_progress_bar: bool = False) -> None:
     config = read_config(config_file)
 
@@ -44,6 +46,21 @@ def main(train_file: Union[str, Path],
                   num_trials=config['num_trials'], save_file=os.path.join(tmp_dir, 'model_fold{}.pkl'.format(fold)))
 
         model_ensemble.append(copy.deepcopy(model.model))
+        feature_importance = model.get_feature_importance(top_k=top_k)
+
+        for task in feature_importance:
+            importances, feature_names = feature_importance[task][0], feature_importance[task][1]
+
+            importance_plot, ax = plt.subplots(nrows=1, ncols=1)
+            ax.barh(range(len(feature_names)), importances, align='center')
+            plt.title('Fold {}, Task: {} - Absolute Feature Importance (Top {})'.format(fold, task, top_k))
+            plt.xlabel('Absolute Feature Importance')
+            plt.ylabel('Feature Name')
+            plt.yticks(range(len(feature_names)), feature_names)
+            plt.grid(True)
+
+            plt.savefig(os.path.join(tmp_dir, 'feature_importance_{}_fold{}.pdf'.format(task.lower(), fold)),
+                        bbox_inches='tight')
 
         fold_predictions_valid = model.predict(fold_features_valid)
         logger.update(fold_labels_valid, fold_predictions_valid)

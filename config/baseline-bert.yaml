@@ -1,6 +1,6 @@
 # Model parameters
 name: 'baseline-bert'
 num_splits: 7
-num_trials: 200
+num_trials: 100
 features: [DocumentEmbeddingsBERT]
 random_state: 42

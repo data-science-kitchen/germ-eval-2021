@@ -10,8 +10,9 @@ from sklearn.metrics import f1_score
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.svm import SVC
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
+
+from sklearn.linear_model import LogisticRegression
 
 
 class FeatureSplitter(BaseEstimator, TransformerMixin):
@@ -40,6 +41,8 @@ class EnsembleVotingClassifier(ClassifierMixin):
 
 
 class GermEvalModel(ClassifierMixin):
+    TASK_NAMES = ['Toxic', 'Engaging', 'FactClaiming']
+
     def __init__(self,
                  feature_funcs: List[Feature]) -> None:
         self.feature_funcs = feature_funcs
@@ -79,7 +82,42 @@ class GermEvalModel(ClassifierMixin):
         else:
             raise ValueError('No trained model found. Please run .fit() first.')
 
-    def _get_feature_type(self):
+    def get_feature_importance(self,
+                               top_k: int = 10) -> Dict:
+        feature_names = self._get_feature_names()
+        feature_type = self._get_feature_type()
+
+        numerical_features = [feature_names[idx] for idx, x in enumerate(feature_type) if x == 'numerical']
+        num_numerical_features = len(numerical_features)
+
+        estimators = self.model.steps[-1][1].estimators_
+
+        output = {}
+
+        for estimator, task in zip(estimators, self.TASK_NAMES):
+            feature_importance = np.abs(estimator.coef_.squeeze())
+
+            embedding_dim = feature_importance.shape[-1] - num_numerical_features
+            reduced_feature_names = numerical_features + embedding_dim * ['EmbeddingFeature']
+
+            sort_idx = feature_importance.argsort()
+            feature_importance = feature_importance[sort_idx]
+            reduced_feature_names = [reduced_feature_names[x] for x in sort_idx]
+            feature_importance, reduced_feature_names = feature_importance[-top_k:], reduced_feature_names[-top_k:]
+
+            output[task] = [feature_importance, reduced_feature_names]
+
+        return output
+
+    def _get_feature_names(self) -> List[str]:
+        feature_names = []
+
+        for feature_func in self.feature_funcs:
+            feature_names += feature_func.dim * [feature_func.__class__.__name__]
+
+        return feature_names
+
+    def _get_feature_type(self) -> List[str]:
         feature_type = []
 
         for feature_func in self.feature_funcs:
@@ -112,7 +150,8 @@ class GermEvalModel(ClassifierMixin):
         model = Pipeline([
             ('features', FeatureUnion(feature_pipeline)),
             ('feature_scaler', StandardScaler()),
-            ('classifier', MultiOutputClassifier(SVC(C=svm_penalty), n_jobs=-1))
+            # ('classifier', MultiOutputClassifier(SVC(kernel='linear', C=svm_penalty), n_jobs=-1))
+            ('classifier', MultiOutputClassifier(LogisticRegression(C=svm_penalty, max_iter=300), n_jobs=-1))
         ])
 
         return model

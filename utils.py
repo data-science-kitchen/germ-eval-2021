@@ -35,6 +35,9 @@ class Logger:
         self.log_file = log_file
         self.metrics_list = []
 
+        with open(self.log_file, 'w') as file:
+            file.write('Logging start: {}\n\n'.format(datetime.now()))
+
     def update(self,
                labels: np.array,
                predictions: np.array) -> None:

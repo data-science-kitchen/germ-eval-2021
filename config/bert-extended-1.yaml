@@ -1,6 +1,6 @@
 # Model parameters
 name: 'bert-extended-1'
 num_splits: 7
-num_trials: 200
+num_trials: 100
 features: [DocumentEmbeddingsBERT, NumCharacters]
 random_state: 42

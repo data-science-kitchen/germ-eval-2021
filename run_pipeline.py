@@ -61,6 +61,7 @@ def main(train_file: Union[str, Path],
 
             plt.savefig(os.path.join(tmp_dir, 'feature_importance_{}_fold{}.pdf'.format(task.lower(), fold)),
                         bbox_inches='tight')
+            plt.close()
 
         fold_predictions_valid = model.predict(fold_features_valid)
         logger.update(fold_labels_valid, fold_predictions_valid)
@@ -79,7 +80,8 @@ def main(train_file: Union[str, Path],
     submission_data_frame['Sub2_Engaging'] = predictions_test[:, 1]
     submission_data_frame['Sub3_FactClaiming'] = predictions_test[:, 2]
 
-    submission_data_frame.to_csv(os.path.join(tmp_dir, 'submission.csv'), index=False, sep=',')
+    submission_data_frame.to_csv(os.path.join(tmp_dir, 'submission_with_text.csv'), index=False, sep=',')
+    submission_data_frame.drop(columns=['c_text']).to_csv(os.path.join(tmp_dir, 'submission.csv'), index=False, sep=',')
 
 
 if __name__ == '__main__':

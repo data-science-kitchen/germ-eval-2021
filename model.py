@@ -68,7 +68,7 @@ class GermEvalModel(ClassifierMixin):
                            gc_after_trial=True)
 
             model = self._get_model(
-                svd_num_components=study.best_params['svd_num_components'], svm_penalty=study.best_params['svm_penalty']
+                svd_num_components=study.best_params['svd_num_components'], lr_penalty=study.best_params['lr_penalty']
             )
             model.fit(features_train, labels_train)
 
@@ -127,7 +127,7 @@ class GermEvalModel(ClassifierMixin):
 
     def _get_model(self,
                    svd_num_components: Optional[int] = None,
-                   svm_penalty: Optional[float] = 1.0):
+                   lr_penalty: Optional[float] = 1.0):
         feature_types = self._get_feature_type()
         numerical_features = np.asarray([x == 'numerical' for x in feature_types], dtype=bool)
         embedding_features = np.asarray([x == 'embedding' for x in feature_types], dtype=bool)
@@ -150,8 +150,9 @@ class GermEvalModel(ClassifierMixin):
         model = Pipeline([
             ('features', FeatureUnion(feature_pipeline)),
             ('feature_scaler', StandardScaler()),
-            # ('classifier', MultiOutputClassifier(SVC(kernel='linear', C=svm_penalty), n_jobs=-1))
-            ('classifier', MultiOutputClassifier(LogisticRegression(C=svm_penalty, max_iter=300), n_jobs=-1))
+            ('classifier', MultiOutputClassifier(
+                LogisticRegression(C=lr_penalty, penalty='l1', max_iter=300, solver='liblinear', tol=0.1), n_jobs=-1
+            ))
         ])
 
         return model
@@ -164,7 +165,7 @@ class GermEvalModel(ClassifierMixin):
                           labels_valid: Optional[np.array] = None) -> float:
         model = self._get_model(
             svd_num_components=trial.suggest_int('svd_num_components', 1, max(self.num_embedding_features - 1, 1)),
-            svm_penalty=trial.suggest_loguniform('svm_penalty', 0.1, 1e4)
+            lr_penalty=trial.suggest_loguniform('lr_penalty', 0.1, 1e4)
         )
         model.fit(features_train, labels_train)
 

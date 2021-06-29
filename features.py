@@ -103,7 +103,7 @@ class SpellingMistakes(Feature):
 
     @property
     def dim(self):
-        return 10
+        return 18
 
     @property
     def type(self):
@@ -112,34 +112,50 @@ class SpellingMistakes(Feature):
     def __call__(self, text: str) -> np.array:
         mistakes = self.spell_checker.check(text)
 
-        output = np.zeros((1, 10))
+        output = np.zeros((1, 18))
 
         if len(mistakes) > 0:
             for mistake in mistakes:
                 if mistake.category == 'MISC':
                     output[0, 0] += 1
-                if mistake.category == 'EMPFOHLENE_RECHTSCHREIBUNG':
+                elif mistake.category == 'EMPFOHLENE_RECHTSCHREIBUNG':
                     output[0, 1] += 1
-                if mistake.category == 'TYPOGRAPHY' and \
+                elif mistake.category == 'TYPOGRAPHY' and \
                         mistake.ruleId not in ['TYPOGRAFISCHE_ANFUEHRUNGSZEICHEN',
                                                'FALSCHE_VERWENDUNG_DES_BINDESTRICHS',
                                                'AKZENT_STATT_APOSTROPH', 'MULTIPLICATION_SIGN']:
                     output[0, 2] += 1
-                if mistake.category == 'PUNCTUATION' and \
+                elif mistake.category == 'PUNCTUATION' and \
                         mistake.ruleId not in ['EINHEIT_LEERZEICHEN', 'ZEICHENSETZUNG_DIREKTE_REDE']:
                     output[0, 3] += 1
-                if mistake.category == 'GRAMMAR':
+                elif mistake.category == 'GRAMMAR':
                     output[0, 4] += 1
-                if mistake.category == 'CASING':
+                elif mistake.category == 'CASING':
                     output[0, 5] += 1
-                if mistake.category == 'HILFESTELLUNG_KOMMASETZUNG':
+                elif mistake.category == 'HILFESTELLUNG_KOMMASETZUNG':
                     output[0, 6] += 1
-                if mistake.category == 'COLLOQUIALISMS':
+                elif mistake.category == 'COLLOQUIALISMS':
                     output[0, 7] += 1
-                if mistake.category == 'COMPOUNDING':
+                elif mistake.category == 'COMPOUNDING':
                     output[0, 8] += 1
-                if mistake.category == 'CONFUSED_WORDS':
+                elif mistake.category == 'CONFUSED_WORDS':
                     output[0, 9] += 1
+                elif mistake.category == 'REDUNDANCY':
+                    output[0, 10] += 1
+                elif mistake.category == 'TYPOS':
+                    output[0, 11] += 1
+                elif mistake.category == 'STYLE':
+                    output[0, 12] += 1
+                elif mistake.category == 'PROPER_NOUNS':
+                    output[0, 13] += 1
+                elif mistake.category == 'OLD_SPELLING':
+                    output[0, 14] += 1
+                elif mistake.category == 'IDIOMS':
+                    output[0, 15] += 1
+                elif mistake.category == 'PUNCTUATION' and mistake.ruleId == 'DE_DOUBLE_PUNCTUATION':
+                    output[0, 16] += 1
+                elif mistake.category == 'PUNCTUATION' and mistake.ruleId == 'DOPPELTES_AUSRUFEZEICHEN':
+                    output[0, 17] += 1
 
         return np.log(output + 1e-9) - np.log(len(text.split()) + 1e-9)
 

@@ -1,0 +1,6 @@
+# Model parameters
+name: 'all-features'
+num_splits: 7
+num_trials: 100
+features: [DocumentEmbeddingsBERT, WritingStyleEmbeddings, SentimentBERT, SpellingMistakes, TokenLengthStandardDeviation, AverageTokenLength, NumTokens, NumCharacters, StopwordRatio, ExclamationMarkRatio, NumReferences, NumMediumAdressed, NumUserAdressed, AverageEmojiRepetition]
+random_state: 42

@@ -1,4 +1,5 @@
 import abc
+from advertools import extract_emoji, stopwords
 from flair.data import Sentence
 from flair.embeddings import DocumentPoolEmbeddings, WordEmbeddings
 from flair.embeddings import TransformerDocumentEmbeddings
@@ -18,7 +19,6 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import torch
 from typing import List, Optional, Tuple, Union
 from tqdm import tqdm
-from advertools import stopwords
 
 tf.disable_v2_behavior()
 
@@ -47,6 +47,30 @@ class Feature(abc.ABC):
             raise ValueError('Feature is not trainable')
         else:
             pass
+
+
+class AverageEmojiRepetition(Feature):
+    def __init__(self) -> None:
+        pass
+
+    @property
+    def dim(self):
+        return 1
+
+    @property
+    def type(self):
+        return 'numerical'
+
+    @property
+    def is_trainable(self) -> bool:
+        return False
+
+    def __call__(self, text: str) -> float:
+        if len(extract_emoji(text)['top_emoji']) > 0:
+            average_emoji_counts = np.array(extract_emoji(text)['top_emoji'])[:, 1].astype(int).mean()
+        else:
+            average_emoji_counts = 0
+        return np.log(average_emoji_counts + 1e-9)
 
 
 class NumUserAdressed(Feature):
@@ -151,7 +175,7 @@ class StopwordRatio(Feature):
     
     def __call__(self, text: str) -> float:
         tokens = text.lower().split()
-        ratio = np.sum([token in stopwords['german'] for token in tokens]) / len(tokens)
+        ratio = np.sum([token in stopwords.words('german') for token in tokens]) / len(tokens)
 
         return np.log(ratio + 0.5 + 1e-9)
 
@@ -484,42 +508,6 @@ class WritingStyleEmbeddings(Feature):
         emb = adhominem.inference([doc], sess)
 
         return emb
-
-# class WordDistance(Feature):
-#     def __init__(self) -> None:
-#         pass
-#
-#     @property
-#     def dim(self):
-#         return 1
-#
-#     @property
-#     def type(self):
-#         return 'numerical'
-#
-#     @property
-#     def is_trainable(self) -> bool:
-#         return True
-#
-#     def __call__(self, text: str) -> float:
-#         raise NotImplementedError
-#
-#     def fit(self, text: List[str], labels: Optional[np.array] = None) -> None:
-#         vectorizer = CountVectorizer(stop_words=stopwords['german'])
-#         most_frequent_tokens = []
-#
-#         for task_idx in range(3):
-#             task_relevant_texts = [x for idx, x in enumerate(text) if labels[idx, task_idx] == 1]
-#
-#             count_matrix = vectorizer.fit_transform(task_relevant_texts)
-#
-#             largest_indices = count_matrix.toarray().sum(axis=0).argsort()[-20:]
-#             aggregated_count_matrix = np.zeros((1, count_matrix.shape[-1]))
-#             aggregated_count_matrix[:, largest_indices] = count_matrix.toarray().sum(axis=0)[largest_indices]
-#
-#             most_frequent_tokens.append(vectorizer.inverse_transform(aggregated_count_matrix))
-#
-#         raise NotImplementedError
 
 
 class FeatureExtractor:

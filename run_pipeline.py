@@ -15,7 +15,7 @@ def main(train_file: Union[str, Path],
          test_file: Union[str, Path],
          config_file: Union[str, Path],
          tmp_dir: Union[str, Path] = './tmp',
-         top_k: int = 20,
+         top_k: int = 25,
          show_progress_bar: bool = False) -> None:
     config = read_config(config_file)
 

@@ -2,14 +2,17 @@ import abc
 from flair.data import Sentence
 from flair.embeddings import DocumentPoolEmbeddings, WordEmbeddings
 from flair.embeddings import TransformerDocumentEmbeddings
+from model import AdHominem
 from nltk.corpus import stopwords
 import numpy as np
 import os
 import pandas as pd
 from pathlib import Path
+import pickle
 import re
 import language_tool_python
-from sklearn.feature_extraction.text import CountVectorizer
+from somajo import SoMaJo
+import tensorflow.compat.v1 as tf
 from textblob_de import TextBlobDE as TextBlob
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import torch
@@ -17,11 +20,7 @@ from typing import List, Optional, Tuple, Union
 from tqdm import tqdm
 from advertools import stopwords
 
-import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
-from model_adhominem import AdHominem
-import pickle
-from somajo import SoMaJo
 
 
 class Feature(abc.ABC):

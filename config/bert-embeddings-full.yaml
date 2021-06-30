@@ -2,5 +2,5 @@
 name: 'bert-embeddings-full'
 num_splits: 7
 num_trials: 100
-features: [DocumentEmbeddingsBERT, NumUserAdressed, NumMediumAdressed, NumReferences, ExclamationMarkRatio, StopwordRatio, NumCharacters, NumTokens, AverageTokenLength, TokenLengthStandardDeviation, SpellingMistakes, SentimentTextBlob, SentimentBERT]
+features: [DocumentEmbeddingsBERT, NumUserAdressed, NumMediumAdressed, NumReferences, ExclamationMarkRatio, StopwordRatio, NumCharacters, NumTokens, AverageTokenLength, TokenLengthStandardDeviation, SpellingMistakes, SentimentBERT]
 random_state: 42

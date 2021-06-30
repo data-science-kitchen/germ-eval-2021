@@ -2,19 +2,26 @@ import abc
 from flair.data import Sentence
 from flair.embeddings import DocumentPoolEmbeddings, WordEmbeddings
 from flair.embeddings import TransformerDocumentEmbeddings
+from nltk.corpus import stopwords
 import numpy as np
 import os
 import pandas as pd
 from pathlib import Path
 import re
-#from spellchecker import SpellChecker
 import language_tool_python
+from sklearn.feature_extraction.text import CountVectorizer
 from textblob_de import TextBlobDE as TextBlob
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import torch
 from typing import List, Optional, Tuple, Union
 from tqdm import tqdm
 from advertools import stopwords
+
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+from model_adhominem import AdHominem
+import pickle
+from somajo import SoMaJo
 
 
 class Feature(abc.ABC):
@@ -28,8 +35,19 @@ class Feature(abc.ABC):
     def type(self) -> str:
         pass
 
+    @property
+    @abc.abstractmethod
+    def is_trainable(self) -> bool:
+        pass
+
     def __call__(self, text: str) -> Union[float, np.array]:
         pass
+
+    def fit(self, text: List[str], labels: Optional[np.array] = None) -> None:
+        if not self.is_trainable:
+            raise ValueError('Feature is not trainable')
+        else:
+            pass
 
 
 class NumUserAdressed(Feature):
@@ -43,6 +61,10 @@ class NumUserAdressed(Feature):
     @property
     def type(self):
         return 'numerical'
+
+    @property
+    def is_trainable(self) -> bool:
+        return False
     
     def __call__(self, text: str) -> float:
         user_adressed = np.sum([token == '@user' for token in text.lower().split()])
@@ -60,6 +82,10 @@ class NumMediumAdressed(Feature):
     @property
     def type(self):
         return 'numerical'
+
+    @property
+    def is_trainable(self) -> bool:
+        return False
     
     def __call__(self, text: str) -> float:
         medium_adressed = np.sum([token == '@medium' for token in text.lower().split()])
@@ -77,6 +103,10 @@ class NumReferences(Feature):
     @property
     def type(self):
         return 'numerical'
+
+    @property
+    def is_trainable(self) -> bool:
+        return False
     
     def __call__(self, text: str) -> float:
         refs = re.findall(r'http*\S+', text)
@@ -94,35 +124,14 @@ class ExclamationMarkRatio(Feature):
     @property
     def type(self):
         return 'numerical'
+
+    @property
+    def is_trainable(self) -> bool:
+        return False
     
     def __call__(self, text: str) -> float:
         exclamation_mark_ratio = np.sum([char=='!' for char in text]) / len(text)
         return exclamation_mark_ratio * 10
-
-
-# class NumWordsInQuotes(Feature):
-#     def __init__(self) -> None:
-#         pass
-#
-#     @property
-#     def dim(self):
-#         return 1
-#
-#     @property
-#     def type(self):
-#         return 'numerical'
-#
-#     def __call__(self, text: str) -> float:
-#         x = re.findall("'.'|"."", text) # words in the single quotation and double quotation.
-#         count=0
-#         if x is None:
-#             return 0
-#         else:
-#             for i in x:
-#                 t=i[1:-1]
-#                 count+=count_words(t)
-#
-#         return np.log(count + 1e-9)
 
 
 class StopwordRatio(Feature):
@@ -136,6 +145,10 @@ class StopwordRatio(Feature):
     @property
     def type(self):
         return 'numerical'
+
+    @property
+    def is_trainable(self) -> bool:
+        return False
     
     def __call__(self, text: str) -> float:
         tokens = text.lower().split()
@@ -156,6 +169,10 @@ class NumCharacters(Feature):
     def type(self):
         return 'numerical'
 
+    @property
+    def is_trainable(self) -> bool:
+        return False
+
     def __call__(self, text: str) -> float:
         return np.log(len(text) + 1e-9)
 
@@ -172,6 +189,10 @@ class NumTokens(Feature):
     def type(self):
         return 'numerical'
 
+    @property
+    def is_trainable(self) -> bool:
+        return False
+
     def __call__(self, text: str) -> float:
         return np.log(len(text.split()) + 1e-9)
 
@@ -187,6 +208,10 @@ class AverageTokenLength(Feature):
     @property
     def type(self):
         return 'numerical'
+
+    @property
+    def is_trainable(self) -> bool:
+        return False
 
     def __call__(self, text: str) -> float:
         word_lengths = [len(x) for x in text.split()]
@@ -205,6 +230,10 @@ class TokenLengthStandardDeviation(Feature):
     def type(self):
         return 'numerical'
 
+    @property
+    def is_trainable(self) -> bool:
+        return False
+
     def __call__(self, text: str) -> float:
         word_lengths = [len(x) for x in text.split()]
         return np.log(np.std(word_lengths) + 1e-9)
@@ -221,6 +250,10 @@ class SpellingMistakes(Feature):
     @property
     def type(self):
         return 'numerical'
+
+    @property
+    def is_trainable(self) -> bool:
+        return False
 
     def __call__(self, text: str) -> np.array:
         mistakes = self.spell_checker.check(text)
@@ -286,6 +319,10 @@ class DocumentEmbeddingsFastTextPool(Feature):
     def type(self):
         return 'embedding'
 
+    @property
+    def is_trainable(self) -> bool:
+        return False
+
     def __call__(self, text: str) -> float:
         sentence = Sentence(text)
         self.document_embeddings.embed(sentence)
@@ -305,6 +342,10 @@ class DocumentEmbeddingsBERT(Feature):
     def type(self):
         return 'embedding'
 
+    @property
+    def is_trainable(self) -> bool:
+        return False
+
     def __call__(self, text: str) -> float:
         sentence = Sentence(text)
         self.embeddings.embed(sentence)
@@ -323,6 +364,10 @@ class SentimentTextBlob(Feature):
     @property
     def type(self):
         return 'numerical'
+
+    @property
+    def is_trainable(self) -> bool:
+        return False
 
     def __call__(self, text: str) -> float:
         blob = TextBlob(text)
@@ -351,6 +396,10 @@ class SentimentBERT(Feature):
     @property
     def type(self):
         return 'numerical'
+
+    @property
+    def is_trainable(self) -> bool:
+        return False
 
     def __call__(self, text: str) -> np.array:
         text = self._clean_text(text)
@@ -385,6 +434,95 @@ class SentimentBERT(Feature):
             .replace('8', ' acht').replace('9', ' neun')
 
 
+class WritingStyleEmbeddings(Feature):
+    def __init__(self) -> None:
+        self.tokenizer = SoMaJo(language='en_PTB', split_sentences=True)  # "de_CMC"
+
+        tf.reset_default_graph()
+
+        with open(os.path.join('adhominem'), 'rb') as f:
+            parameters = pickle.load(f)
+
+        with tf.variable_scope('AdHominem'):
+            self.adhominem = AdHominem(hyper_parameters=parameters['hyper_parameters'],
+                                       theta_init=parameters['theta'],
+                                       theta_E_init=parameters['theta_E'])
+
+        self.session = tf.Session()
+        self.session.run(tf.global_variables_initializer())
+
+    @property
+    def dim(self):
+        return 100
+
+    @property
+    def type(self):
+        return 'numerical'
+
+    @property
+    def is_trainable(self) -> bool:
+        return False
+
+    def __call__(self, text: str) -> np.array:
+        processed_text = self.preprocess_doc(text, self.tokenizer)
+        embeddings = self.make_inference(processed_text, self.adhominem, self.session).squeeze()
+
+        return embeddings
+
+    @staticmethod
+    def preprocess_doc(doc, tokenizer):
+        sentences = tokenizer.tokenize_text([doc])
+        doc_new = ''
+        for sentence in sentences:
+            for token in sentence:
+                doc_new += token.text + ' '
+        doc_new = doc_new.strip()
+
+        return doc_new
+
+    @staticmethod
+    def make_inference(doc, adhominem, sess):
+        emb = adhominem.inference([doc], sess)
+
+        return emb
+
+# class WordDistance(Feature):
+#     def __init__(self) -> None:
+#         pass
+#
+#     @property
+#     def dim(self):
+#         return 1
+#
+#     @property
+#     def type(self):
+#         return 'numerical'
+#
+#     @property
+#     def is_trainable(self) -> bool:
+#         return True
+#
+#     def __call__(self, text: str) -> float:
+#         raise NotImplementedError
+#
+#     def fit(self, text: List[str], labels: Optional[np.array] = None) -> None:
+#         vectorizer = CountVectorizer(stop_words=stopwords['german'])
+#         most_frequent_tokens = []
+#
+#         for task_idx in range(3):
+#             task_relevant_texts = [x for idx, x in enumerate(text) if labels[idx, task_idx] == 1]
+#
+#             count_matrix = vectorizer.fit_transform(task_relevant_texts)
+#
+#             largest_indices = count_matrix.toarray().sum(axis=0).argsort()[-20:]
+#             aggregated_count_matrix = np.zeros((1, count_matrix.shape[-1]))
+#             aggregated_count_matrix[:, largest_indices] = count_matrix.toarray().sum(axis=0)[largest_indices]
+#
+#             most_frequent_tokens.append(vectorizer.inverse_transform(aggregated_count_matrix))
+#
+#         raise NotImplementedError
+
+
 class FeatureExtractor:
     def __init__(self,
                  feature_funcs: List[Feature]) -> None:
@@ -393,6 +531,7 @@ class FeatureExtractor:
     def get_features(self,
                      dataset_file: Union[str, Path],
                      save_file: Optional[Union[str, Path]] = None,
+                     train: bool = False,
                      show_progress_bar: bool = False) -> Tuple[np.array, np.array]:
         if save_file is not None and os.path.isfile(save_file):
             file = np.load(save_file, allow_pickle=True)
@@ -404,6 +543,14 @@ class FeatureExtractor:
             feature_dim = self._get_feature_dim()
 
             has_labels = self._check_has_labels(data_frame)
+
+            if train:
+                train_text = data_frame.iloc[:, 1].tolist()
+                train_labels = data_frame.iloc[:, 2:].to_numpy() if has_labels else None
+
+                for feature_func in self.feature_funcs:
+                    if feature_func.is_trainable:
+                        feature_func.fit(train_text, train_labels)
 
             features = np.zeros((num_documents, feature_dim))
             labels = np.zeros((num_documents, 3), dtype=np.int64) if has_labels else None

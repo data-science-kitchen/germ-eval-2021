@@ -15,7 +15,7 @@ def main(train_file: Union[str, Path],
          test_file: Union[str, Path],
          config_file: Union[str, Path],
          tmp_dir: Union[str, Path] = './tmp',
-         top_k: int = 10,
+         top_k: int = 20,
          show_progress_bar: bool = False) -> None:
     config = read_config(config_file)
 
@@ -27,6 +27,7 @@ def main(train_file: Union[str, Path],
     
     features_train, labels_train = feature_extractor.get_features(train_file,
                                                                   save_file=os.path.join(tmp_dir, 'features_train.npz'),
+                                                                  train=True,
                                                                   show_progress_bar=show_progress_bar)
 
     splitter = StratifiedKFold(n_splits=config['num_splits'], shuffle=True, random_state=config['random_state'])

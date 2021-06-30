@@ -1,8 +1,8 @@
 import copy
-from features import FeatureExtractor
+from preprocessing.features import FeatureExtractor
 import fire
 import matplotlib.pyplot as plt
-from model import EnsembleVotingClassifier, GermEvalModel
+from models.classifier import EnsembleVotingClassifier, GermEvalModel
 import os
 import pandas as pd
 from pathlib import Path

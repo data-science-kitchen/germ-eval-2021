@@ -2,7 +2,7 @@ from flair.datasets import CSVClassificationCorpus
 import pandas as pd
 from pathlib import Path
 import os
-from typing import Optional, Union
+from typing import Union
 
 
 class GermEval2021(CSVClassificationCorpus):

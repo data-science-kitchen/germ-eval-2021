@@ -2,7 +2,7 @@ import abc
 from flair.data import Sentence
 from flair.embeddings import DocumentPoolEmbeddings, WordEmbeddings
 from flair.embeddings import TransformerDocumentEmbeddings
-from model import AdHominem
+from models.adhominem import AdHominem
 from nltk.corpus import stopwords
 import numpy as np
 import os
@@ -456,7 +456,7 @@ class WritingStyleEmbeddings(Feature):
 
     @property
     def type(self):
-        return 'numerical'
+        return 'embedding'
 
     @property
     def is_trainable(self) -> bool:

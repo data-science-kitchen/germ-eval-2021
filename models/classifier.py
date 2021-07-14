@@ -98,7 +98,6 @@ class GermEvalModel(ClassifierMixin):
 
             embedding_dim = feature_importance.shape[-1] - num_numerical_features
             reduced_feature_names = numerical_features + embedding_dim * ['EmbeddingFeature']
-
             sort_idx = feature_importance.argsort()
             feature_importance = feature_importance[sort_idx]
             reduced_feature_names = [reduced_feature_names[x] for x in sort_idx]
@@ -112,7 +111,7 @@ class GermEvalModel(ClassifierMixin):
         feature_names = []
 
         for feature_func in self.feature_funcs:
-            feature_names += feature_func.dim * [feature_func.__class__.__name__]
+            feature_names += feature_func.feature_names
 
         return feature_names
 

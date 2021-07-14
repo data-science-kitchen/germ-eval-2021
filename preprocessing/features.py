@@ -39,6 +39,10 @@ class Feature(abc.ABC):
     def is_trainable(self) -> bool:
         pass
 
+    @property
+    def feature_names(self) -> np.array:
+        return self.dim * [self.__class__.__name__]
+
     def __call__(self, text: str) -> Union[float, np.array]:
         pass
 
@@ -277,6 +281,30 @@ class SpellingMistakes(Feature):
     @property
     def is_trainable(self) -> bool:
         return False
+
+    @property
+    def feature_names(self) -> List[str]:
+        names = [
+            'MISC',
+            'EMPFOHLENE_RECHTSCHREIBUNG',
+            'TYPOGRAPHY',
+            'PUNCTUATION',
+            'GRAMMAR',
+            'CASING',
+            'HILFESTELLUNG_KOMMASETZUNG',
+            'COLLOQUIALISMS',
+            'COMPOUNDING',
+            'CONFUSED_WORDS',
+            'REDUNDANCY',
+            'TYPOS',
+            'STYLE',
+            'PROPER_NOUNS',
+            'OLD_SPELLING',
+            'IDIOMS',
+            'DE_DOUBLE_PUNCTUATION',
+            'DOPPELTES_AUSRUFEZEICHEN'
+        ]
+        return names
 
     def __call__(self, text: str) -> np.array:
         mistakes = self.spell_checker.check(text)

@@ -272,7 +272,7 @@ class SpellingMistakes(Feature):
 
     @property
     def dim(self):
-        return 18
+        return 17
 
     @property
     def type(self):
@@ -286,12 +286,12 @@ class SpellingMistakes(Feature):
     def feature_names(self) -> List[str]:
         names = [
             'MISC',
-            'EMPFOHLENE_RECHTSCHREIBUNG',
+            'RECOMMENDED_SPELLING',
             'TYPOGRAPHY',
             'PUNCTUATION',
             'GRAMMAR',
             'CASING',
-            'HILFESTELLUNG_KOMMASETZUNG',
+            'SUPPORT_PUNCTUATION',
             'COLLOQUIALISMS',
             'COMPOUNDING',
             'CONFUSED_WORDS',
@@ -299,17 +299,16 @@ class SpellingMistakes(Feature):
             'TYPOS',
             'STYLE',
             'PROPER_NOUNS',
-            'OLD_SPELLING',
             'IDIOMS',
             'DE_DOUBLE_PUNCTUATION',
-            'DOPPELTES_AUSRUFEZEICHEN'
+            'DOUBLE_EXCLAMATION_MARK'
         ]
         return names
 
     def __call__(self, text: str) -> np.array:
         mistakes = self.spell_checker.check(text)
 
-        output = np.zeros((1, 18))
+        output = np.zeros((1, self.dim))
 
         if len(mistakes) > 0:
             for mistake in mistakes:
@@ -345,14 +344,12 @@ class SpellingMistakes(Feature):
                     output[0, 12] += 1
                 elif mistake.category == 'PROPER_NOUNS':
                     output[0, 13] += 1
-                elif mistake.category == 'OLD_SPELLING':
-                    output[0, 14] += 1
                 elif mistake.category == 'IDIOMS':
-                    output[0, 15] += 1
+                    output[0, 14] += 1
                 elif mistake.category == 'PUNCTUATION' and mistake.ruleId == 'DE_DOUBLE_PUNCTUATION':
-                    output[0, 16] += 1
+                    output[0, 15] += 1
                 elif mistake.category == 'PUNCTUATION' and mistake.ruleId == 'DOPPELTES_AUSRUFEZEICHEN':
-                    output[0, 17] += 1
+                    output[0, 16] += 1
 
         return np.log(output + 1e-9) - np.log(len(text.split()) + 1e-9)
 

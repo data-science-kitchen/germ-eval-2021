@@ -38,13 +38,13 @@ Please refer to the corresponding function documentation for additional argument
 If you use the code or datasets in this repository, please cite our paper:
 
 ```
-@inproceedings{GermEval2021-DataScienceKitchen,
-	abbr = {KONVENS},
-	author = {N. Hildebrandt and B. Bönninghoff and D. Orth and C. Schymura},
-	booktitle = {Konferenz zur Verarbeitung natürlicher Sprache/Conference on Natural Language Processing (KONVENS)},
-	title = {Data {S}cience {K}itchen at {G}erm{E}val 2021: {A} Fine Selection of Hand-Picked Features, Delivered Fresh from the Oven},
-	year = {2021},
-	pages = {88-94}
+@inproceedings{germeval2021-dsk,
+    abbr = {KONVENS},
+    author = {N. Hildebrandt and B. Bönninghoff and D. Orth and C. Schymura},
+    booktitle = {Konferenz zur Verarbeitung natürlicher Sprache/Conference on Natural Language Processing (KONVENS)},
+    title = {Data {S}cience {K}itchen at {G}erm{E}val 2021: {A} Fine Selection of Hand-Picked Features, Delivered Fresh from the Oven},
+    year = {2021},
+    pages = {88-94}
 }
 ```
 

@@ -35,7 +35,7 @@ Please refer to the corresponding function documentation for additional argument
 
 ## 📑 Citation
 
-If you use the code or datasets in this repository, please cite our paper:
+If you use the code in this repository, please cite our paper:
 
 ```
 @inproceedings{germeval2021-dsk,

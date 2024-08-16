@@ -1,14 +1,14 @@
-# Data Science Kitchen at GermEval 2021
+# 🥇 Data Science Kitchen at GermEval 2021
 
 This repository contains the codebase and resources for the paper [Data Science Kitchen at GermEval 2021: Identifying Toxic, Engaging, and Fact-Claiming Comments](https://arxiv.org/abs/2109.02383), which was submitted to the GermEval 2021 shared task. The task focuses on identifying comments that are toxic, engaging, and fact-claiming, with the goal of helping moderators and community managers prioritize content for fact-checking and engagement.
 
-## Repository Structure
+## 📁 Repository Structure
 
-- **`/config/`**: Includes training configuration files in YAML format, which can be used to train the model on different feature sets.
-- **`/data/`**: Contains the GermEval 2021 dataset for training and evaluation, as well as pretrained weights of the [AdHominem](https://arxiv.org/abs/1910.08144) model.
-- **`/src/`**: The codebase, including functions for data preparation, model training and evaluation.
+- **`config`**: Includes training configuration files in YAML format, which can be used to train the model on different feature sets.
+- **`data`**: Contains the GermEval 2021 dataset for training and evaluation, as well as pretrained weights of the [AdHominem](https://arxiv.org/abs/1910.08144) model.
+- **`src`**: The codebase, including functions for data preparation, model training and evaluation.
 
-## Installation
+## 👷‍♀️ Installation
 
 To run the code in this repository, follow these steps:
 
@@ -23,7 +23,7 @@ To run the code in this repository, follow these steps:
    pip install -r requirements.txt
    ```
 
-## Usage
+## 🚀 Usage
 
 We have provided a single script `run_pipeline.py`, which performs the entire process of data preparation, feature extraction, model training, tuning and evaluation via a single function call. To reproduce the results from the paper, simply run the following command:
 
@@ -33,7 +33,7 @@ python run_pipeline.py data/GermEval21_Toxic_Train.csv data/GermEval21_Toxic_Tes
 
 Please refer to the corresponding function documentation for additional arguments you can provide to this function.
 
-## Citation
+## 📑 Citation
 
 If you use the code or datasets in this repository, please cite our paper:
 
@@ -48,6 +48,6 @@ If you use the code or datasets in this repository, please cite our paper:
 }
 ```
 
-## License
+## 🧑‍⚖️ License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -178,7 +178,7 @@ class GermEvalModel(ClassifierMixin):
     ) -> float:
         model = self._get_model(
             svd_num_components=trial.suggest_int("svd_num_components", 1, max(self.num_embedding_features - 1, 1)),
-            lr_penalty=trial.suggest_loguniform("lr_penalty", 0.1, 1e4),
+            lr_penalty=trial.suggest_float("lr_penalty", 0.1, 1e4, log=True),
         )
         model.fit(features_train, labels_train)
 

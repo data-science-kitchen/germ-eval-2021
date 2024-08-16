@@ -1,15 +1,16 @@
 import abc
-from advertools import extract_emoji, stopwords
+from advertools import extract_emoji
 from flair.data import Sentence
 from flair.embeddings import DocumentPoolEmbeddings, WordEmbeddings
 from flair.embeddings import TransformerDocumentEmbeddings
 from models.adhominem import AdHominem
+import nltk
 from nltk.corpus import stopwords
 import numpy as np
 import os
 import pandas as pd
 from pathlib import Path
-import pickle
+from skops.io import load
 import re
 import language_tool_python
 from somajo import SoMaJo
@@ -21,6 +22,11 @@ from typing import List, Optional, Tuple, Union
 from tqdm import tqdm
 
 tf.disable_v2_behavior()
+
+try:
+    stopwords.words("german")
+except LookupError:
+    nltk.download("stopwords")
 
 
 class Feature(abc.ABC):
@@ -501,8 +507,8 @@ class WritingStyleEmbeddings(Feature):
 
         tf.reset_default_graph()
 
-        with open(os.path.join("adhominem"), "rb") as f:
-            parameters = pickle.load(f)
+        with open(os.path.join("data", "adhominem.skops"), "rb") as f:
+            parameters = load(f)  # type: ignore
 
         with tf.variable_scope("AdHominem"):
             self.adhominem = AdHominem(

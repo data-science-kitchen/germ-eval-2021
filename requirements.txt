@@ -1,4 +1,4 @@
-advertools==0.15.1
+advertools==0.11.0
 fire==0.6.0
 flair==0.14.0
 joblib==1.4.2
@@ -12,6 +12,7 @@ PyYAML==6.0.2
 scikit_learn==1.5.1
 somajo==2.4.3
 tensorflow==2.17.0
+textblob==0.15.2
 textblob_de==0.4.3
 torch==2.4.0
 tqdm==4.66.5

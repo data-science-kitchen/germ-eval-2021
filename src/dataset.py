@@ -1,8 +1,9 @@
-from flair.datasets import CSVClassificationCorpus
-import pandas as pd
-from pathlib import Path
 import os
+from pathlib import Path
 from typing import Union
+
+import pandas as pd
+from flair.datasets import CSVClassificationCorpus
 
 
 class GermEval2021(CSVClassificationCorpus):

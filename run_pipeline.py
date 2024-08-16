@@ -1,14 +1,16 @@
 import copy
-from preprocessing.features import FeatureExtractor
+import os
+from pathlib import Path
+from typing import Union
+
 import fire
 import matplotlib.pyplot as plt
-from models.classifier import EnsembleVotingClassifier, GermEvalModel
-import os
 import pandas as pd
-from pathlib import Path
 from sklearn.model_selection import StratifiedKFold
-from typing import Union
-from utils import Logger, multilabel_to_multiclass, read_config
+
+from src.classifier import EnsembleVotingClassifier, GermEvalModel
+from src.features import FeatureExtractor
+from src.utils import Logger, multilabel_to_multiclass, read_config
 
 
 def main(

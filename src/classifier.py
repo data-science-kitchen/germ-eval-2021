@@ -1,17 +1,19 @@
-from preprocessing.features import Feature
+import os
+from pathlib import Path
+from typing import Dict, List, Optional, Union
+
 import joblib
 import numpy as np
 import optuna
-import os
-from pathlib import Path
 from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
 from sklearn.decomposition import TruncatedSVD
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LogisticRegression
-from typing import Dict, List, Optional, Union
+
+from src.features import Feature
 
 
 class FeatureSplitter(BaseEstimator, TransformerMixin):

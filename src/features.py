@@ -1,25 +1,26 @@
 import abc
+import os
+import re
+from pathlib import Path
+from typing import List, Optional, Tuple, Union
+
+import language_tool_python
+import nltk
+import numpy as np
+import pandas as pd
+import tensorflow.compat.v1 as tf
+import torch
 from advertools import extract_emoji
 from flair.data import Sentence
-from flair.embeddings import DocumentPoolEmbeddings, WordEmbeddings
-from flair.embeddings import TransformerDocumentEmbeddings
-from models.adhominem import AdHominem
-import nltk
+from flair.embeddings import DocumentPoolEmbeddings, TransformerDocumentEmbeddings, WordEmbeddings
 from nltk.corpus import stopwords
-import numpy as np
-import os
-import pandas as pd
-from pathlib import Path
 from skops.io import load
-import re
-import language_tool_python
 from somajo import SoMaJo
-import tensorflow.compat.v1 as tf
 from textblob_de import TextBlobDE as TextBlob
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
-import torch
-from typing import List, Optional, Tuple, Union
 from tqdm import tqdm
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+from src.adhominem import AdHominem
 
 tf.disable_v2_behavior()
 

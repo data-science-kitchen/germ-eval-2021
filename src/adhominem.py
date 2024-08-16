@@ -710,11 +710,11 @@ class AdHominem:
                     else:
                         x_w[i, j, k] = V_w["<UNK>"]
                     # current character
-                    for l, chr in enumerate(token[:T_c]):
+                    for m, chr in enumerate(token[:T_c]):
                         if chr in V_c:
-                            x_c[i, j, k, l] = V_c[chr]
+                            x_c[i, j, k, m] = V_c[chr]
                         else:
-                            x_c[i, j, k, l] = V_c["<UNK>"]
+                            x_c[i, j, k, m] = V_c["<UNK>"]
 
         return x_w, N_w, N_s, x_c
 

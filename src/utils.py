@@ -1,10 +1,11 @@
 from datetime import datetime
-import numpy as np
 from pathlib import Path
+from typing import Dict, Union
+
+import numpy as np
+import yaml
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.preprocessing import LabelEncoder
-from typing import Dict, Union
-import yaml
 
 
 def read_config(config_file: Union[str, Path]) -> Dict:
@@ -15,7 +16,7 @@ def read_config(config_file: Union[str, Path]) -> Dict:
 
     for feature in config_data["features"]:
         try:
-            feature_func = getattr(__import__("preprocessing.features", fromlist=[feature]), feature)
+            feature_func = getattr(__import__("src.features", fromlist=[feature]), feature)
             config_data["feature_funcs"].append(feature_func())
         except BaseException as err:
             print("Error when loading module {}: {}".format(feature, str(err)))

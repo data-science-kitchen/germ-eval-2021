@@ -3,31 +3,31 @@ import tensorflow.compat.v1 as tf
 
 tf.disable_v2_behavior()
 
-class AdHominem():
-    """
-        AdHominem describes a Siamese network topology for (binary) authorship verification, also known as pairwise
-        (1:1) forensic text comparison. This implementation was developed for the The PAN 2020 authorship verification
-        challenge. It represents a hierarchical fusion of two well-known approaches into a single end-to-end learning
-        procedure: A deep metric learning framework at the bottom aims to learn a pseudo-metric that maps a document of
-        variable length onto a fixed-sized feature vector. At the top, we incorporate a probabilistic layer to perform
-        Bayes factor scoring in the learned metric space. As with most deep-learning approaches, the success of the
-        proposed architecture depends heavily on the availability of a large collection of text samples with many
-        examples of representative variations in writing style. The size of the train set (especially for the small
-        dataset) can be increased synthetically by dissembling all predefined document pairs and re-sampling new
-        same-author and different-author pairs in each epoch (see helper_functions).
 
-        References:
-        [1] Benedikt Boenninghoff, Robert M. Nickel, Steffen Zeiler, Dorothea Kolossa, 'Similarity Learning for
-            Authorship Verification in Social Media', IEEE ICASSP 2019.
-        [2] Benedikt Boenninghoff, Steffen Hessler, Dorothea Kolossa, Robert M. Nickel 'Explainable Authorship
-            Verification in Social Media via Attention-based Similarity Learning', IEEE BigData 2019.
-        [3] Benedikt Boenninghoff, Julian Rupp, Dorothea Kolossa, Robert M. Nickel 'Deep Bayes Factor Scoring For
-            Authorship Verification', PAN Workshop Notebook at CLEF 2020.
+class AdHominem:
+    """
+    AdHominem describes a Siamese network topology for (binary) authorship verification, also known as pairwise
+    (1:1) forensic text comparison. This implementation was developed for the The PAN 2020 authorship verification
+    challenge. It represents a hierarchical fusion of two well-known approaches into a single end-to-end learning
+    procedure: A deep metric learning framework at the bottom aims to learn a pseudo-metric that maps a document of
+    variable length onto a fixed-sized feature vector. At the top, we incorporate a probabilistic layer to perform
+    Bayes factor scoring in the learned metric space. As with most deep-learning approaches, the success of the
+    proposed architecture depends heavily on the availability of a large collection of text samples with many
+    examples of representative variations in writing style. The size of the train set (especially for the small
+    dataset) can be increased synthetically by dissembling all predefined document pairs and re-sampling new
+    same-author and different-author pairs in each epoch (see helper_functions).
+
+    References:
+    [1] Benedikt Boenninghoff, Robert M. Nickel, Steffen Zeiler, Dorothea Kolossa, 'Similarity Learning for
+        Authorship Verification in Social Media', IEEE ICASSP 2019.
+    [2] Benedikt Boenninghoff, Steffen Hessler, Dorothea Kolossa, Robert M. Nickel 'Explainable Authorship
+        Verification in Social Media via Attention-based Similarity Learning', IEEE BigData 2019.
+    [3] Benedikt Boenninghoff, Julian Rupp, Dorothea Kolossa, Robert M. Nickel 'Deep Bayes Factor Scoring For
+        Authorship Verification', PAN Workshop Notebook at CLEF 2020.
 
     """
 
     def __init__(self, hyper_parameters, theta_init, theta_E_init):
-
         # hyper-parameters
         self.hyper_parameters = hyper_parameters
 
@@ -43,30 +43,30 @@ class AdHominem():
         ##########################################
         # document embeddings (feature extraction)
         ##########################################
-        with tf.variable_scope('feature_extraction_doc2vec'):
-            e_c = self.placeholders['e_c']
-            e_w = self.placeholders['e_w']
-            N_w = self.placeholders['N_w']
-            N_s = self.placeholders['N_s']
+        with tf.variable_scope("feature_extraction_doc2vec"):
+            e_c = self.placeholders["e_c"]
+            e_w = self.placeholders["e_w"]
+            N_w = self.placeholders["N_w"]
+            N_s = self.placeholders["N_s"]
             # doc2vec
             e_d = self.feature_extraction(e_c, e_w, N_w, N_s)
 
         #################
         # metric learning
         #################
-        with tf.variable_scope('metric_learning'):
-            self.emb = self.metric_layer(e_d, self.theta['metric'])
+        with tf.variable_scope("metric_learning"):
+            self.emb = self.metric_layer(e_d, self.theta["metric"])
 
     ###############################
     # MLP layer for metric learning
     ###############################
     def metric_layer(self, e_d, theta):
-
         # fully-connected layer
-        y = tf.nn.xw_plus_b(e_d,
-                            theta['W'],
-                            theta['b'],
-                            )
+        y = tf.nn.xw_plus_b(
+            e_d,
+            theta["W"],
+            theta["b"],
+        )
         # nonlinear output
         y = tf.nn.tanh(y)
 
@@ -76,29 +76,30 @@ class AdHominem():
     # initialize all placeholders and look-up tables
     ################################################
     def initialize_placeholders(self, theta_E):
-
-        T_c = self.hyper_parameters['T_c']
-        T_w = self.hyper_parameters['T_w']
-        T_s = self.hyper_parameters['T_s']
-        D_c = self.hyper_parameters['D_c']
-        D_w = self.hyper_parameters['D_w']
+        T_c = self.hyper_parameters["T_c"]
+        T_w = self.hyper_parameters["T_w"]
+        T_s = self.hyper_parameters["T_s"]
+        D_c = self.hyper_parameters["D_c"]
+        D_w = self.hyper_parameters["D_w"]
 
         # input character placeholder
-        x_c = tf.placeholder(dtype=tf.int32,
-                             shape=[None, T_s, T_w, T_c],
-                             name='x_c',
-                             )
+        x_c = tf.placeholder(
+            dtype=tf.int32,
+            shape=[None, T_s, T_w, T_c],
+            name="x_c",
+        )
 
         # initialize embedding matrix for characters
-        with tf.variable_scope('character_embedding_matrix'):
+        with tf.variable_scope("character_embedding_matrix"):
             # <PAD> embedding
             E_c_0 = tf.zeros(shape=[1, D_c], dtype=tf.float32)
             # trainable embeddings
-            E_c_1 = tf.Variable(theta_E['E_c_1'],
-                                name='E_c_1',
-                                dtype=tf.float32,
-                                trainable=False,
-                                )
+            E_c_1 = tf.Variable(
+                theta_E["E_c_1"],
+                name="E_c_1",
+                dtype=tf.float32,
+                trainable=False,
+            )
             # concatenate zero-padding embedding + trained character embeddings
             E_c = tf.concat([E_c_0, E_c_1], axis=0)
 
@@ -106,28 +107,30 @@ class AdHominem():
         e_c = tf.nn.embedding_lookup(E_c, x_c)
 
         # word-based placeholder for two documents
-        x_w = tf.placeholder(dtype=tf.int32, shape=[None, T_s, T_w], name='x_w')
+        x_w = tf.placeholder(dtype=tf.int32, shape=[None, T_s, T_w], name="x_w")
 
         # true sentence / document lengths
-        N_w = tf.placeholder(dtype=tf.int32, shape=[None, T_s], name='N_w')
-        N_s = tf.placeholder(dtype=tf.int32, shape=[None], name='N_s')
+        N_w = tf.placeholder(dtype=tf.int32, shape=[None, T_s], name="N_w")
+        N_s = tf.placeholder(dtype=tf.int32, shape=[None], name="N_s")
 
         # matrix for word embeddings, shape=[len(V_w), D_w]
-        with tf.variable_scope('word_embedding_matrix'):
+        with tf.variable_scope("word_embedding_matrix"):
             # <PAD> embedding
             E_w_0 = tf.zeros(shape=[1, D_w], dtype=tf.float32)
             # <UNK> embedding
-            E_w_1 = tf.Variable(theta_E['E_w_1'],
-                                name='E_w_1',
-                                trainable=False,
-                                dtype=tf.float32,
-                                )
+            E_w_1 = tf.Variable(
+                theta_E["E_w_1"],
+                name="E_w_1",
+                trainable=False,
+                dtype=tf.float32,
+            )
             # pre-trained word embedding
-            E_w_2 = tf.Variable(theta_E['E_w_2'],
-                                name='E_w_2',
-                                trainable=False,
-                                dtype=tf.float32,
-                                )
+            E_w_2 = tf.Variable(
+                theta_E["E_w_2"],
+                name="E_w_2",
+                trainable=False,
+                dtype=tf.float32,
+            )
             # concatenate special-token embeddings + regular-token embeddings
             E_w = tf.concat([E_w_0, E_w_1, E_w_2], axis=0)
 
@@ -137,15 +140,16 @@ class AdHominem():
         #############
         # make tuples
         #############
-        placeholders = {'x_c': x_c,
-                        'e_c': e_c,
-                        #
-                        'x_w': x_w,
-                        'e_w': e_w,
-                        #
-                        'N_w': N_w,
-                        'N_s': N_s,
-                        }
+        placeholders = {
+            "x_c": x_c,
+            "e_c": e_c,
+            #
+            "x_w": x_w,
+            "e_w": e_w,
+            #
+            "N_w": N_w,
+            "N_s": N_s,
+        }
 
         return placeholders
 
@@ -153,14 +157,13 @@ class AdHominem():
     # feature extraction: words-to-document encoding
     ################################################
     def feature_extraction(self, e_c, e_w, N_w, N_s):
-
-        with tf.variable_scope('characters_to_word_encoding'):
+        with tf.variable_scope("characters_to_word_encoding"):
             r_c = self.cnn_layer_cw(e_c)
-        with tf.variable_scope('words_to_sentence_encoding'):
+        with tf.variable_scope("words_to_sentence_encoding"):
             e_cw = tf.concat([e_w, r_c], axis=3)
             h_w = self.bilstm_layer_ws(e_cw, N_w)
             e_s = self.att_layer_ws(h_w, N_w)
-        with tf.variable_scope('sentences_to_document_encoding'):
+        with tf.variable_scope("sentences_to_document_encoding"):
             h_s = self.bilstm_layer_sd(e_s, N_s)
             e_d = self.att_layer_sd(h_s, N_s)
 
@@ -170,34 +173,35 @@ class AdHominem():
     # 1D-CNN for characters-to-word encoding
     ########################################
     def cnn_layer_cw(self, e_c):
-
-        T_s = self.hyper_parameters['T_s']
-        T_w = self.hyper_parameters['T_w']
-        T_c = self.hyper_parameters['T_c']
-        h = self.hyper_parameters['w']
-        D_c = self.hyper_parameters['D_c']
-        D_r = self.hyper_parameters['D_r']
+        T_s = self.hyper_parameters["T_s"]
+        T_w = self.hyper_parameters["T_w"]
+        T_c = self.hyper_parameters["T_c"]
+        h = self.hyper_parameters["w"]
+        D_c = self.hyper_parameters["D_c"]
+        D_r = self.hyper_parameters["D_r"]
 
         # zero-padding
         # reshape: [B, T_s, T_w, T_c, D_c] --> [B * T_s * T_w, T_c, D_c]
         e_c = tf.reshape(e_c, shape=[self.B * T_s * T_w, T_c, D_c])
 
         # zero-padding, shape = [B * T_s * T_w, T_c + 2 * (h-1), D_c]
-        e_c = tf.pad(e_c,
-                     tf.constant([[0, 0], [h - 1, h - 1], [0, 0]]),
-                     mode='CONSTANT',
-                     )
+        e_c = tf.pad(
+            e_c,
+            tf.constant([[0, 0], [h - 1, h - 1], [0, 0]]),
+            mode="CONSTANT",
+        )
 
         # 1D convolution
         # shape = [B * T_s * T_w, T_c + 2 * (h-1) - h + 1, D_r] = [B * T_s * T_w, T_c + h - 1, D_r]
-        r_c = tf.nn.conv1d(e_c,
-                           self.theta['cnn']['W'],
-                           stride=1,
-                           padding='VALID',
-                           name='chraracter_1D_cnn',
-                           )
+        r_c = tf.nn.conv1d(
+            e_c,
+            self.theta["cnn"]["W"],
+            stride=1,
+            padding="VALID",
+            name="chraracter_1D_cnn",
+        )
         # apply bias term
-        r_c = tf.nn.bias_add(r_c, self.theta['cnn']['b'])
+        r_c = tf.nn.bias_add(r_c, self.theta["cnn"]["b"])
         # apply nonlinear function
         r_c = tf.nn.tanh(r_c)
 
@@ -205,11 +209,12 @@ class AdHominem():
         # shape = [B * T_s * T_w, T_c + h - 1, D_r, 1]
         r_c = tf.expand_dims(r_c, 3)
         # max-over-time-pooling, shape = [B * T_s * T_w, 1, D_r, 1]
-        r_c = tf.nn.max_pool(r_c,
-                             ksize=[1, T_c + h - 1, 1, 1],
-                             strides=[1, 1, 1, 1],
-                             padding='VALID',
-                             )
+        r_c = tf.nn.max_pool(
+            r_c,
+            ksize=[1, T_c + h - 1, 1, 1],
+            strides=[1, 1, 1, 1],
+            padding="VALID",
+        )
         # shape = [B * T_s * T_w, D_r]
         r_c = tf.squeeze(r_c)
         #  shape = [B, T_s, T_w, D_r]
@@ -221,12 +226,11 @@ class AdHominem():
     # BiLSTM layer for words-to-sentence encoding
     #############################################
     def bilstm_layer_ws(self, e_w_f, N_w):
-
-        D_w = self.hyper_parameters['D_w']
-        D_r = self.hyper_parameters['D_r']
-        D_s = self.hyper_parameters['D_s']
-        T_w = self.hyper_parameters['T_w']
-        T_s = self.hyper_parameters['T_s']
+        D_w = self.hyper_parameters["D_w"]
+        D_r = self.hyper_parameters["D_r"]
+        D_s = self.hyper_parameters["D_s"]
+        T_w = self.hyper_parameters["T_w"]
+        T_s = self.hyper_parameters["T_s"]
 
         # reshape N_w, shape = [B * T_s]
         N_w = tf.reshape(N_w, shape=[self.B * T_s])
@@ -244,13 +248,16 @@ class AdHominem():
 
         N_w_t = tf.tile(tf.expand_dims(N_w, axis=1), tf.constant([1, T_w], tf.int32))
 
-        states = tf.scan(self.bilstm_cell_ws,
-                         [tf.transpose(e_w_f, perm=[1, 0, 2]),
-                          tf.transpose(e_w_b, perm=[1, 0, 2]),
-                          tf.transpose(N_w_t, perm=[1, 0])],
-                         initializer=[h_0_f, h_0_b, c_0_f, c_0_b, t_0],
-                         name='lstm_ws_layer',
-                         )
+        states = tf.scan(
+            self.bilstm_cell_ws,
+            [
+                tf.transpose(e_w_f, perm=[1, 0, 2]),
+                tf.transpose(e_w_b, perm=[1, 0, 2]),
+                tf.transpose(N_w_t, perm=[1, 0]),
+            ],
+            initializer=[h_0_f, h_0_b, c_0_f, c_0_b, t_0],
+            name="lstm_ws_layer",
+        )
 
         h_f = states[0]
         h_b = states[1]
@@ -270,7 +277,6 @@ class AdHominem():
     # BiLSTM cell for words-to-sentence encoding
     ############################################
     def bilstm_cell_ws(self, prev, input):
-
         # input parameters
         h_prev_f = prev[0]
         h_prev_b = prev[1]
@@ -283,13 +289,19 @@ class AdHominem():
         N_w = input[2]
 
         # compute next forward states
-        h_next_f, c_next_f = self.lstm_cell(e_w_f, h_prev_f, c_prev_f,
-                                            self.theta['lstm_ws_forward'],
-                                            )
+        h_next_f, c_next_f = self.lstm_cell(
+            e_w_f,
+            h_prev_f,
+            c_prev_f,
+            self.theta["lstm_ws_forward"],
+        )
         # compute next backward states
-        h_next_b, c_next_b = self.lstm_cell(e_w_b, h_prev_b, c_prev_b,
-                                            self.theta['lstm_ws_backward'],
-                                            )
+        h_next_b, c_next_b = self.lstm_cell(
+            e_w_b,
+            h_prev_b,
+            c_prev_b,
+            self.theta["lstm_ws_backward"],
+        )
 
         # t < T
         condition = tf.less(t, N_w)
@@ -306,9 +318,8 @@ class AdHominem():
     # BiLSTM layer for sentences-to-document encoding
     #################################################
     def bilstm_layer_sd(self, e_s_f, N_s):
-
-        D_d = self.hyper_parameters['D_d']
-        T_s = self.hyper_parameters['T_s']
+        D_d = self.hyper_parameters["D_d"]
+        T_s = self.hyper_parameters["T_s"]
 
         # reverse input sentences
         e_s_b = tf.reverse_sequence(e_s_f, seq_lengths=N_s, seq_axis=1)
@@ -322,13 +333,16 @@ class AdHominem():
 
         N_s_t = tf.tile(tf.expand_dims(N_s, axis=1), tf.constant([1, T_s], tf.int32))
 
-        states = tf.scan(self.bilstm_cell_sd,
-                         [tf.transpose(e_s_f, perm=[1, 0, 2]),
-                          tf.transpose(e_s_b, perm=[1, 0, 2]),
-                          tf.transpose(N_s_t, perm=[1, 0])],
-                         initializer=[h_0_f, h_0_b, c_0_f, c_0_b, t_0],
-                         name='lstm_sd_layer',
-                         )
+        states = tf.scan(
+            self.bilstm_cell_sd,
+            [
+                tf.transpose(e_s_f, perm=[1, 0, 2]),
+                tf.transpose(e_s_b, perm=[1, 0, 2]),
+                tf.transpose(N_s_t, perm=[1, 0]),
+            ],
+            initializer=[h_0_f, h_0_b, c_0_f, c_0_b, t_0],
+            name="lstm_sd_layer",
+        )
 
         h_f = states[0]
         h_b = states[1]
@@ -346,7 +360,6 @@ class AdHominem():
     # BiLSTM cell for sentences-to-document encoding
     ################################################
     def bilstm_cell_sd(self, prev, input):
-
         # input parameters
         h_prev_f = prev[0]
         h_prev_b = prev[1]
@@ -359,13 +372,19 @@ class AdHominem():
         N_s = input[2]
 
         # compute next forward states
-        h_next_f, c_next_f = self.lstm_cell(e_s_f, h_prev_f, c_prev_f,
-                                            self.theta['lstm_sd_forward'],
-                                            )
+        h_next_f, c_next_f = self.lstm_cell(
+            e_s_f,
+            h_prev_f,
+            c_prev_f,
+            self.theta["lstm_sd_forward"],
+        )
         # compute next backward states
-        h_next_b, c_next_b = self.lstm_cell(e_s_b, h_prev_b, c_prev_b,
-                                            self.theta['lstm_sd_backward'],
-                                            )
+        h_next_b, c_next_b = self.lstm_cell(
+            e_s_b,
+            h_prev_b,
+            c_prev_b,
+            self.theta["lstm_sd_backward"],
+        )
 
         # t < T
         condition = tf.less(t, N_s)
@@ -382,19 +401,18 @@ class AdHominem():
     # single LSTM cell
     ##################
     def lstm_cell(self, e_w, h_prev, c_prev, params):
-
-        W_i = params['W_i']
-        U_i = params['U_i']
-        b_i = params['b_i']
-        W_f = params['W_f']
-        U_f = params['U_f']
-        b_f = params['b_f']
-        W_o = params['W_o']
-        U_o = params['U_o']
-        b_o = params['b_o']
-        W_c = params['W_c']
-        U_c = params['U_c']
-        b_c = params['b_c']
+        W_i = params["W_i"]
+        U_i = params["U_i"]
+        b_i = params["b_i"]
+        W_f = params["W_f"]
+        U_f = params["U_f"]
+        b_f = params["b_f"]
+        W_o = params["W_o"]
+        U_o = params["U_o"]
+        b_o = params["b_o"]
+        W_c = params["W_c"]
+        U_c = params["U_c"]
+        b_c = params["b_c"]
 
         # forget
         i_t = tf.sigmoid(tf.matmul(e_w, W_i) + tf.matmul(h_prev, U_i) + b_i)
@@ -415,19 +433,16 @@ class AdHominem():
     # attention layer for words-to-sentence encoding
     ################################################
     def att_layer_ws(self, h_w, N_w):
-
-        D_s = self.hyper_parameters['D_s']
-        T_w = self.hyper_parameters['T_w']
-        T_s = self.hyper_parameters['T_s']
+        D_s = self.hyper_parameters["D_s"]
+        T_w = self.hyper_parameters["T_w"]
+        T_s = self.hyper_parameters["T_s"]
 
         # shape=[2 * B * T_s * T_w, 2 * D_s]
         scores = tf.reshape(h_w, shape=[self.B * T_s * T_w, 2 * D_s])
-        scores = tf.nn.tanh(tf.nn.xw_plus_b(scores,
-                                            self.theta['att_ws']['W'],
-                                            self.theta['att_ws']['b']))
+        scores = tf.nn.tanh(tf.nn.xw_plus_b(scores, self.theta["att_ws"]["W"], self.theta["att_ws"]["b"]))
 
         # shape=[2 * B * T_s * T_w, 1]
-        scores = tf.matmul(scores, self.theta['att_ws']['v'])
+        scores = tf.matmul(scores, self.theta["att_ws"]["v"])
         # shape=[2 * B, T_s, T_w]
         scores = tf.reshape(scores, shape=[self.B, T_s, T_w])
 
@@ -452,17 +467,14 @@ class AdHominem():
     # attention layer for sentences-to-docuemnt encoding
     ####################################################
     def att_layer_sd(self, h_s, N_s):
-
-        D_d = self.hyper_parameters['D_d']
-        T_s = self.hyper_parameters['T_s']
+        D_d = self.hyper_parameters["D_d"]
+        T_s = self.hyper_parameters["T_s"]
 
         # shape=[2 * B * T_s, 2 * D_d]
         scores = tf.reshape(h_s, shape=[self.B * T_s, 2 * D_d])
-        scores = tf.nn.tanh(tf.nn.xw_plus_b(scores,
-                                            self.theta['att_sd']['W'],
-                                            self.theta['att_sd']['b']))
+        scores = tf.nn.tanh(tf.nn.xw_plus_b(scores, self.theta["att_sd"]["W"], self.theta["att_sd"]["b"]))
         # shape=[2 * B * T_s, 1]
-        scores = tf.matmul(scores, self.theta['att_sd']['v'])
+        scores = tf.matmul(scores, self.theta["att_sd"]["v"])
         # shape=[2 * B, T_s]
         scores = tf.reshape(scores, shape=[self.B, T_s])
 
@@ -484,159 +496,180 @@ class AdHominem():
         return e_d
 
     def initialize_parameters(self, theta_init):
-
         theta = {}
 
-        with tf.variable_scope('theta_cnn'):
-            theta['cnn'] = self.initialize_cnn(theta_init['cnn'])
+        with tf.variable_scope("theta_cnn"):
+            theta["cnn"] = self.initialize_cnn(theta_init["cnn"])
 
-        with tf.variable_scope('theta_lstm_ws_forward'):
-            theta['lstm_ws_forward'] = self.initialize_lstm(theta_init['lstm_ws_forward'])
-        with tf.variable_scope('theta_lstm_ws_backward'):
-            theta['lstm_ws_backward'] = self.initialize_lstm(theta_init['lstm_ws_backward'])
+        with tf.variable_scope("theta_lstm_ws_forward"):
+            theta["lstm_ws_forward"] = self.initialize_lstm(theta_init["lstm_ws_forward"])
+        with tf.variable_scope("theta_lstm_ws_backward"):
+            theta["lstm_ws_backward"] = self.initialize_lstm(theta_init["lstm_ws_backward"])
 
-        with tf.variable_scope('theta_lstm_sd_forward'):
-            theta['lstm_sd_forward'] = self.initialize_lstm(theta_init['lstm_sd_forward'])
-        with tf.variable_scope('theta_lstm_sd_backward'):
-            theta['lstm_sd_backward'] = self.initialize_lstm(theta_init['lstm_sd_backward'])
+        with tf.variable_scope("theta_lstm_sd_forward"):
+            theta["lstm_sd_forward"] = self.initialize_lstm(theta_init["lstm_sd_forward"])
+        with tf.variable_scope("theta_lstm_sd_backward"):
+            theta["lstm_sd_backward"] = self.initialize_lstm(theta_init["lstm_sd_backward"])
 
-        with tf.variable_scope('theta_att_ws'):
-            theta['att_ws'] = self.initialize_att(theta_init['att_ws'])
-        with tf.variable_scope('theta_att_sd'):
-            theta['att_sd'] = self.initialize_att(theta_init['att_sd'])
+        with tf.variable_scope("theta_att_ws"):
+            theta["att_ws"] = self.initialize_att(theta_init["att_ws"])
+        with tf.variable_scope("theta_att_sd"):
+            theta["att_sd"] = self.initialize_att(theta_init["att_sd"])
 
-        with tf.variable_scope('theta_metric'):
-            theta['metric'] = self.initialize_mlp(theta_init['metric'])
+        with tf.variable_scope("theta_metric"):
+            theta["metric"] = self.initialize_mlp(theta_init["metric"])
 
         return theta
 
     def initialize_mlp(self, theta_init):
-        theta = {'W': tf.Variable(theta_init['W'],
-                                  trainable=False,
-                                  dtype=tf.float32,
-                                  name='W',
-                                  ),
-                 'b': tf.Variable(theta_init['b'],
-                                  trainable=False,
-                                  dtype=tf.float32,
-                                  name='b',
-                                  ),
-                 }
+        theta = {
+            "W": tf.Variable(
+                theta_init["W"],
+                trainable=False,
+                dtype=tf.float32,
+                name="W",
+            ),
+            "b": tf.Variable(
+                theta_init["b"],
+                trainable=False,
+                dtype=tf.float32,
+                name="b",
+            ),
+        }
         return theta
 
     def initialize_cnn(self, theta_init):
-        theta = {'W': tf.Variable(theta_init['W'],
-                                  trainable=False,
-                                  dtype=tf.float32,
-                                  name='W',
-                                  ),
-                 'b': tf.Variable(theta_init['b'],
-                                  trainable=False,
-                                  dtype=tf.float32,
-                                  name='b',
-                                  ),
-                 }
+        theta = {
+            "W": tf.Variable(
+                theta_init["W"],
+                trainable=False,
+                dtype=tf.float32,
+                name="W",
+            ),
+            "b": tf.Variable(
+                theta_init["b"],
+                trainable=False,
+                dtype=tf.float32,
+                name="b",
+            ),
+        }
         return theta
 
     def initialize_att(self, theta_init):
-        theta = {'W': tf.Variable(theta_init['W'],
-                                  trainable=False,
-                                  dtype=tf.float32,
-                                  name='W',
-                                  ),
-                 'v': tf.Variable(theta_init['v'],
-                                  trainable=False,
-                                  dtype=tf.float32,
-                                  name='v',
-                                  ),
-                 'b': tf.Variable(theta_init['b'],
-                                  trainable=False,
-                                  dtype=tf.float32,
-                                  name='b',
-                                  ),
-                 }
+        theta = {
+            "W": tf.Variable(
+                theta_init["W"],
+                trainable=False,
+                dtype=tf.float32,
+                name="W",
+            ),
+            "v": tf.Variable(
+                theta_init["v"],
+                trainable=False,
+                dtype=tf.float32,
+                name="v",
+            ),
+            "b": tf.Variable(
+                theta_init["b"],
+                trainable=False,
+                dtype=tf.float32,
+                name="b",
+            ),
+        }
         return theta
 
     def initialize_lstm(self, theta_init):
-        theta = {'W_i': tf.Variable(theta_init['W_i'],
-                                    trainable=False,
-                                    dtype=tf.float32,
-                                    name='W_i',
-                                    ),
-                 'U_i': tf.Variable(theta_init['U_i'],
-                                    trainable=False,
-                                    dtype=tf.float32,
-                                    name='U_i',
-                                    ),
-                 'b_i': tf.Variable(theta_init['b_i'],
-                                    trainable=False,
-                                    dtype=tf.float32,
-                                    name='b_i',
-                                    ),
-                 'W_f': tf.Variable(theta_init['W_f'],
-                                    trainable=False,
-                                    dtype=tf.float32,
-                                    name='W_f',
-                                    ),
-                 'U_f': tf.Variable(theta_init['U_f'],
-                                    trainable=False,
-                                    dtype=tf.float32,
-                                    name='U_f',
-                                    ),
-                 'b_f': tf.Variable(theta_init['b_f'],
-                                    trainable=False,
-                                    dtype=tf.float32,
-                                    name='b_f',
-                                    ),
-                 'W_c': tf.Variable(theta_init['W_c'],
-                                    trainable=False,
-                                    dtype=tf.float32,
-                                    name='W_c',
-                                    ),
-                 'U_c': tf.Variable(theta_init['U_c'],
-                                    trainable=False,
-                                    dtype=tf.float32,
-                                    name='U_c',
-                                    ),
-                 'b_c': tf.Variable(theta_init['b_c'],
-                                    trainable=False,
-                                    dtype=tf.float32,
-                                    name='b_c',
-                                    ),
-                 'W_o': tf.Variable(theta_init['W_o'],
-                                    trainable=False,
-                                    dtype=tf.float32,
-                                    name='W_o',
-                                    ),
-                 'U_o': tf.Variable(theta_init['U_o'],
-                                    trainable=False,
-                                    dtype=tf.float32,
-                                    name='U_o',
-                                    ),
-                 'b_o': tf.Variable(theta_init['b_o'],
-                                    trainable=False,
-                                    dtype=tf.float32,
-                                    name='b_o',
-                                    ),
-                 }
+        theta = {
+            "W_i": tf.Variable(
+                theta_init["W_i"],
+                trainable=False,
+                dtype=tf.float32,
+                name="W_i",
+            ),
+            "U_i": tf.Variable(
+                theta_init["U_i"],
+                trainable=False,
+                dtype=tf.float32,
+                name="U_i",
+            ),
+            "b_i": tf.Variable(
+                theta_init["b_i"],
+                trainable=False,
+                dtype=tf.float32,
+                name="b_i",
+            ),
+            "W_f": tf.Variable(
+                theta_init["W_f"],
+                trainable=False,
+                dtype=tf.float32,
+                name="W_f",
+            ),
+            "U_f": tf.Variable(
+                theta_init["U_f"],
+                trainable=False,
+                dtype=tf.float32,
+                name="U_f",
+            ),
+            "b_f": tf.Variable(
+                theta_init["b_f"],
+                trainable=False,
+                dtype=tf.float32,
+                name="b_f",
+            ),
+            "W_c": tf.Variable(
+                theta_init["W_c"],
+                trainable=False,
+                dtype=tf.float32,
+                name="W_c",
+            ),
+            "U_c": tf.Variable(
+                theta_init["U_c"],
+                trainable=False,
+                dtype=tf.float32,
+                name="U_c",
+            ),
+            "b_c": tf.Variable(
+                theta_init["b_c"],
+                trainable=False,
+                dtype=tf.float32,
+                name="b_c",
+            ),
+            "W_o": tf.Variable(
+                theta_init["W_o"],
+                trainable=False,
+                dtype=tf.float32,
+                name="W_o",
+            ),
+            "U_o": tf.Variable(
+                theta_init["U_o"],
+                trainable=False,
+                dtype=tf.float32,
+                name="U_o",
+            ),
+            "b_o": tf.Variable(
+                theta_init["b_o"],
+                trainable=False,
+                dtype=tf.float32,
+                name="b_o",
+            ),
+        }
         return theta
 
     ################################################
     # transform document to a tensor with embeddings
     ################################################
     def sliding_window(self, doc):
-
-        T_w = self.hyper_parameters['T_w']
-        hop_length = self.hyper_parameters['hop_length']
+        T_w = self.hyper_parameters["T_w"]
+        hop_length = self.hyper_parameters["hop_length"]
 
         tokens = doc.split()
         doc_new = []
         n = 0
-        while len(tokens[n:n + T_w]) > 0:
+        while len(tokens[n : n + T_w]) > 0:
             # split sentence into tokens
-            sent_new = ''
-            for token in tokens[n: n + T_w]:
-                sent_new += token + ' '
+            sent_new = ""
+            for token in tokens[n : n + T_w]:
+                sent_new += token + " "
             # add to new doc
             doc_new.append(sent_new.strip())
             # update stepsize
@@ -645,11 +678,11 @@ class AdHominem():
         return doc_new
 
     def doc2mat(self, docs):
-        T_c = self.hyper_parameters['T_c']
-        T_w = self.hyper_parameters['T_w']
-        T_s = self.hyper_parameters['T_s']
-        V_c = self.hyper_parameters['V_c']
-        V_w = self.hyper_parameters['V_w']
+        T_c = self.hyper_parameters["T_c"]
+        T_w = self.hyper_parameters["T_w"]
+        T_s = self.hyper_parameters["T_s"]
+        V_c = self.hyper_parameters["V_c"]
+        V_w = self.hyper_parameters["V_w"]
 
         # batch size
         B = len(docs)
@@ -663,7 +696,6 @@ class AdHominem():
 
         # current document
         for i, doc in enumerate(docs):
-
             # apply sliding window to construct sentence like units
             doc = self.sliding_window(doc)
             N_s[i] = len(doc[:T_s])
@@ -676,13 +708,13 @@ class AdHominem():
                     if token in V_w:
                         x_w[i, j, k] = V_w[token]
                     else:
-                        x_w[i, j, k] = V_w['<UNK>']
+                        x_w[i, j, k] = V_w["<UNK>"]
                     # current character
                     for l, chr in enumerate(token[:T_c]):
                         if chr in V_c:
                             x_c[i, j, k, l] = V_c[chr]
                         else:
-                            x_c[i, j, k, l] = V_c['<UNK>']
+                            x_c[i, j, k, l] = V_c["<UNK>"]
 
         return x_w, N_w, N_s, x_c
 
@@ -690,15 +722,17 @@ class AdHominem():
     # train siamese network (without data augmentation)
     ###################################################
     def inference(self, docs, sess):
-
         # word / character embeddings
         x_w, N_w, N_s, x_c = self.doc2mat(docs)
 
         # compute pred
-        emb = sess.run(self.emb,
-                       feed_dict={self.placeholders['x_w']: x_w,
-                                  self.placeholders['x_c']: x_c,
-                                  self.placeholders['N_w']: N_w,
-                                  self.placeholders['N_s']: N_s,
-                                  })
+        emb = sess.run(
+            self.emb,
+            feed_dict={
+                self.placeholders["x_w"]: x_w,
+                self.placeholders["x_c"]: x_c,
+                self.placeholders["N_w"]: N_w,
+                self.placeholders["N_s"]: N_s,
+            },
+        )
         return emb

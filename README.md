@@ -1,6 +1,6 @@
 # 🥇 Data Science Kitchen at GermEval 2021
 
-This repository contains the codebase and resources for the paper [Data Science Kitchen at GermEval 2021: Identifying Toxic, Engaging, and Fact-Claiming Comments](https://arxiv.org/abs/2109.02383), which was submitted to the GermEval 2021 shared task. The task focuses on identifying comments that are toxic, engaging, and fact-claiming, with the goal of helping moderators and community managers prioritize content for fact-checking and engagement.
+This repository contains the codebase and resources for the paper [Data Science Kitchen at GermEval 2021: A Fine Selection of Hand-Picked Features, Delivered Fresh from the Oven](https://arxiv.org/abs/2109.02383), which was submitted to the GermEval 2021 shared task. The task focuses on identifying comments that are toxic, engaging, and fact-claiming, with the goal of helping moderators and community managers prioritize content for fact-checking and engagement.
 
 ## 📁 Repository Structure
 

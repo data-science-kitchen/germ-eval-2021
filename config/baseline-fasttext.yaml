@@ -1,0 +1,6 @@
+# Model parameters
+name: 'baseline-fasttext'
+num_splits: 7
+num_trials: 100
+features: [DocumentEmbeddingsFastTextPool]
+random_state: 42

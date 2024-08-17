@@ -17,21 +17,57 @@ def main(
     train_file: Union[str, Path],
     test_file: Union[str, Path],
     config_file: Union[str, Path],
-    tmp_dir: Union[str, Path] = "./tmp",
+    results_dir: Union[str, Path] = "./results",
     top_k: int = 25,
     show_progress_bar: bool = False,
 ) -> None:
+    """
+    Main function to train and evaluate our GermEval 2021 model, and generate predictions.
+
+    This function orchestrates the process of feature extraction, model training, evaluation, and prediction.
+    It performs the following steps:
+
+    1. Reads configuration from a specified config file.
+    2. Initializes a feature extractor based on the configuration.
+    3. Extracts features from the training dataset and optionally saves them.
+    4. Splits the training data into training and validation sets using StratifiedKFold.
+    5. Trains the model on each fold and evaluates feature importance.
+    6. Logs performance metrics for each fold.
+    7. Extracts features from the test dataset and makes predictions using an ensemble of trained models.
+    8. Saves predictions to CSV files for submission.
+
+    Parameters
+    ----------
+    train_file : Union[str, Path]
+        Path to the CSV file containing the training data.
+    test_file : Union[str, Path]
+        Path to the CSV file containing the test data.
+    config_file : Union[str, Path]
+        Path to the YAML configuration file specifying feature functions and model parameters.
+    results_dir : Union[str, Path], optional
+        Directory to save results, including feature files, model files, and logs. Defaults to "./results".
+    top_k : int, optional
+        Number of top features to display in feature importance plots. Defaults to 25.
+    show_progress_bar : bool, optional
+        Whether to display a progress bar during feature extraction. Defaults to False.
+
+    Returns
+    -------
+    None
+        This function does not return any value. It saves results and logs to specified files.
+
+    """
     config = read_config(config_file)
 
-    tmp_dir = os.path.join(tmp_dir, config["name"])
-    if not os.path.isdir(tmp_dir):
-        os.makedirs(tmp_dir)
+    results_dir = os.path.join(results_dir, config["name"])
+    if not os.path.isdir(results_dir):
+        os.makedirs(results_dir)
 
     feature_extractor = FeatureExtractor(config["feature_funcs"])
 
     features_train, labels_train = feature_extractor.get_features(
         train_file,
-        save_file=os.path.join(tmp_dir, "features_train.npz"),
+        save_file=os.path.join(results_dir, "features_train.npz"),
         train=True,
         show_progress_bar=show_progress_bar,
     )
@@ -39,7 +75,7 @@ def main(
     splitter = StratifiedKFold(n_splits=config["num_splits"], shuffle=True, random_state=config["random_state"])
     multiclass_labels_train = multilabel_to_multiclass(labels_train)
 
-    logger = Logger(os.path.join(tmp_dir, "training.log"))
+    logger = Logger(os.path.join(results_dir, "training.log"))
 
     model_ensemble = []
 
@@ -55,7 +91,7 @@ def main(
             fold_features_valid,
             fold_labels_valid,
             num_trials=config["num_trials"],
-            save_file=os.path.join(tmp_dir, "model_fold{}.pkl".format(fold)),
+            save_file=os.path.join(results_dir, "model_fold{}.pkl".format(fold)),
         )
 
         model_ensemble.append(copy.deepcopy(model.model))
@@ -73,7 +109,7 @@ def main(
             plt.grid(True)
 
             plt.savefig(
-                os.path.join(tmp_dir, "feature_importance_{}_fold{}.pdf".format(task.lower(), fold)),
+                os.path.join(results_dir, "feature_importance_{}_fold{}.pdf".format(task.lower(), fold)),
                 bbox_inches="tight",
             )
             plt.close()
@@ -84,7 +120,7 @@ def main(
     logger.print_metrics()
 
     features_test, _ = feature_extractor.get_features(
-        test_file, save_file=os.path.join(tmp_dir, "features_test.npz"), show_progress_bar=show_progress_bar
+        test_file, save_file=os.path.join(results_dir, "features_test.npz"), show_progress_bar=show_progress_bar
     )
 
     classifier = EnsembleVotingClassifier(model_ensemble)
@@ -95,8 +131,10 @@ def main(
     submission_data_frame["Sub2_Engaging"] = predictions_test[:, 1]
     submission_data_frame["Sub3_FactClaiming"] = predictions_test[:, 2]
 
-    submission_data_frame.to_csv(os.path.join(tmp_dir, "submission_with_text.csv"), index=False, sep=",")
-    submission_data_frame.drop(columns=["c_text"]).to_csv(os.path.join(tmp_dir, "submission.csv"), index=False, sep=",")
+    submission_data_frame.to_csv(os.path.join(results_dir, "submission_with_text.csv"), index=False, sep=",")
+    submission_data_frame.drop(columns=["c_text"]).to_csv(
+        os.path.join(results_dir, "submission.csv"), index=False, sep=","
+    )
 
 
 if __name__ == "__main__":

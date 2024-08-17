@@ -31,6 +31,23 @@ except LookupError:
 
 
 class Feature(abc.ABC):
+    """
+    An abstract base class for defining features used in machine learning models.
+
+    This class serves as a blueprint for creating different types of features that can be extracted from text data. Each
+    subclass of `Feature` should implement the abstract properties and methods to define the dimensionality, type, and
+    trainability of the feature. Additionally, the `__call__` method should be overridden to define how the feature is
+    extracted from a given text.
+
+    Methods
+    -------
+    __call__(text: str) -> Union[float, np.array]
+        Abstract method to extract the feature from a given text. Should be implemented in subclasses.
+    fit(text: List[str], labels: Optional[np.array] = None) -> None
+        Method to train the feature extraction process, if applicable. Raises a ValueError if the feature is not
+        trainable.
+    """
+
     @property
     @abc.abstractmethod
     def dim(self) -> int:
@@ -61,8 +78,24 @@ class Feature(abc.ABC):
 
 
 class AverageEmojiRepetition(Feature):
-    def __init__(self) -> None:
-        pass
+    """
+    A feature that calculates the average repetition of emojis in a given text.
+
+    This class is a specific implementation of the `Feature` abstract base class. It extracts the average repetition
+    count of emojis in the text and returns it as a numerical feature. The result is logarithmically scaled to prevent
+    skewness caused by large counts.
+
+    Methods
+    -------
+    dim() -> int
+        Returns the dimensionality of the feature, which is 1.
+    type() -> str
+        Returns the type of the feature, which is "numerical".
+    is_trainable() -> bool
+        Indicates whether the feature is trainable. Always returns False.
+    __call__(text: str) -> float
+        Extracts the average emoji repetition count from the text and returns its logarithmically scaled value.
+    """
 
     @property
     def dim(self):
@@ -85,8 +118,23 @@ class AverageEmojiRepetition(Feature):
 
 
 class NumUserAdressed(Feature):
-    def __init__(self) -> None:
-        pass
+    """
+    A feature that calculates the number of times users are addressed in a given text.
+
+    This class counts the occurrences of the placeholder "@user" in the text, which typically represents user mentions,
+    and returns the count as a numerical feature. The result is logarithmically scaled to handle large counts.
+
+    Methods
+    -------
+    dim() -> int
+        Returns the dimensionality of the feature, which is 1.
+    type() -> str
+        Returns the type of the feature, which is "numerical".
+    is_trainable() -> bool
+        Indicates whether the feature is trainable. Always returns False.
+    __call__(text: str) -> float
+        Extracts the number of times users are addressed in the text and returns its logarithmically scaled value.
+    """
 
     @property
     def dim(self):
@@ -106,8 +154,24 @@ class NumUserAdressed(Feature):
 
 
 class NumMediumAdressed(Feature):
-    def __init__(self) -> None:
-        pass
+    """
+    A feature that calculates the number of times a medium (e.g., news outlet) is addressed in a given text.
+
+    This class counts the occurrences of the placeholder "@medium" in the text, which typically represents mentions of a
+    medium or organization, and returns the count as a numerical feature. The result is logarithmically scaled to handle
+    large counts.
+
+    Methods
+    -------
+    dim() -> int
+        Returns the dimensionality of the feature, which is 1.
+    type() -> str
+        Returns the type of the feature, which is "numerical".
+    is_trainable() -> bool
+        Indicates whether the feature is trainable. Always returns False.
+    __call__(text: str) -> float
+        Extracts the number of times a medium is addressed in the text and returns its logarithmically scaled value.
+    """
 
     @property
     def dim(self):
@@ -127,8 +191,23 @@ class NumMediumAdressed(Feature):
 
 
 class NumReferences(Feature):
-    def __init__(self) -> None:
-        pass
+    """
+    A feature that calculates the number of references (e.g., URLs) in a given text.
+
+    This class counts the occurrences of URLs in the text using a regular expression and returns the count as a
+    numerical feature. The result is logarithmically scaled to handle large counts.
+
+    Methods
+    -------
+    dim() -> int
+        Returns the dimensionality of the feature, which is 1.
+    type() -> str
+        Returns the type of the feature, which is "numerical".
+    is_trainable() -> bool
+        Indicates whether the feature is trainable. Always returns False.
+    __call__(text: str) -> float
+        Extracts the number of references (URLs) in the text and returns its logarithmically scaled value.
+    """
 
     @property
     def dim(self):
@@ -148,8 +227,23 @@ class NumReferences(Feature):
 
 
 class ExclamationMarkRatio(Feature):
-    def __init__(self) -> None:
-        pass
+    """
+    A feature that calculates the ratio of exclamation marks in a given text.
+
+    This class computes the proportion of characters in the text that are exclamation marks (`!`), and returns this
+    ratio as a numerical feature.
+
+    Methods
+    -------
+    dim() -> int
+        Returns the dimensionality of the feature, which is 1.
+    type() -> str
+        Returns the type of the feature, which is "numerical".
+    is_trainable() -> bool
+        Indicates whether the feature is trainable. Always returns False.
+    __call__(text: str) -> float
+        Computes the ratio of exclamation marks in the text.
+    """
 
     @property
     def dim(self):
@@ -165,12 +259,28 @@ class ExclamationMarkRatio(Feature):
 
     def __call__(self, text: str) -> float:
         exclamation_mark_ratio = np.sum([char == "!" for char in text]) / len(text)
-        return exclamation_mark_ratio * 10
+        return exclamation_mark_ratio
 
 
 class StopwordRatio(Feature):
-    def __init__(self) -> None:
-        pass
+    """
+    A feature that calculates the ratio of stopwords in a given text.
+
+    This class computes the proportion of tokens in the text that are stopwords, using a predefined list of German
+    stopwords, and returns this ratio as a numerical feature. The result is logarithmically scaled with an offset to
+    handle edge cases.
+
+    Methods
+    -------
+    dim() -> int
+        Returns the dimensionality of the feature, which is 1.
+    type() -> str
+        Returns the type of the feature, which is "numerical".
+    is_trainable() -> bool
+        Indicates whether the feature is trainable. Always returns False.
+    __call__(text: str) -> float
+        Computes the ratio of stopwords in the text and returns the logarithmically scaled value.
+    """
 
     @property
     def dim(self):
@@ -188,12 +298,27 @@ class StopwordRatio(Feature):
         tokens = text.lower().split()
         ratio = np.sum([token in stopwords.words("german") for token in tokens]) / len(tokens)
 
-        return np.log(ratio + 0.5 + 1e-9)
+        return np.log(ratio + 1e-9)
 
 
 class NumCharacters(Feature):
-    def __init__(self) -> None:
-        pass
+    """
+    A feature that calculates the number of characters in a given text.
+
+    This class computes the total number of characters in the text and returns this count as a logarithmically scaled
+    numerical feature.
+
+    Methods
+    -------
+    dim() -> int
+        Returns the dimensionality of the feature, which is 1.
+    type() -> str
+        Returns the type of the feature, which is "numerical".
+    is_trainable() -> bool
+        Indicates whether the feature is trainable. Always returns False.
+    __call__(text: str) -> float
+        Computes the logarithmically scaled number of characters in the text.
+    """
 
     @property
     def dim(self):
@@ -211,9 +336,24 @@ class NumCharacters(Feature):
         return np.log(len(text) + 1e-9)
 
 
-class NumTokens(Feature):
-    def __init__(self) -> None:
-        pass
+class NumWords(Feature):
+    """
+    A feature that calculates the number of words in a given text.
+
+    This class computes the total number of words in the text and returns this count as a logarithmically scaled
+    numerical feature.
+
+    Methods
+    -------
+    dim() -> int
+        Returns the dimensionality of the feature, which is 1.
+    type() -> str
+        Returns the type of the feature, which is "numerical".
+    is_trainable() -> bool
+        Indicates whether the feature is trainable. Always returns False.
+    __call__(text: str) -> float
+        Computes the logarithmically scaled number of words in the text.
+    """
 
     @property
     def dim(self):
@@ -231,9 +371,24 @@ class NumTokens(Feature):
         return np.log(len(text.split()) + 1e-9)
 
 
-class AverageTokenLength(Feature):
-    def __init__(self) -> None:
-        pass
+class AverageWordLength(Feature):
+    """
+    A feature that calculates the average word length in a given text.
+
+    This class computes the average word length in the text and returns it as a logarithmically scaled numerical
+    feature.
+
+    Methods
+    -------
+    dim() -> int
+        Returns the dimensionality of the feature, which is 1.
+    type() -> str
+        Returns the type of the feature, which is "numerical".
+    is_trainable() -> bool
+        Indicates whether the feature is trainable. Always returns False.
+    __call__(text: str) -> float
+        Computes the logarithmically scaled average word length in the text.
+    """
 
     @property
     def dim(self):
@@ -252,9 +407,24 @@ class AverageTokenLength(Feature):
         return np.log(np.mean(word_lengths) + 1e-9)
 
 
-class TokenLengthStandardDeviation(Feature):
-    def __init__(self) -> None:
-        pass
+class WordLengthStandardDeviation(Feature):
+    """
+    A feature that calculates the standard deviation of word lengths in a given text.
+
+    This class computes the standard deviation of word lengths in the text and returns this value as a logarithmically
+    scaled numerical feature.
+
+    Methods
+    -------
+    dim() -> int
+        Returns the dimensionality of the feature, which is 1.
+    type() -> str
+        Returns the type of the feature, which is "numerical".
+    is_trainable() -> bool
+        Indicates whether the feature is trainable. Always returns False.
+    __call__(text: str) -> float
+        Computes the logarithmically scaled standard deviation of word lengths in the text.
+    """
 
     @property
     def dim(self):
@@ -274,6 +444,34 @@ class TokenLengthStandardDeviation(Feature):
 
 
 class SpellingMistakes(Feature):
+    """
+    A feature that counts various types of spelling and grammatical mistakes in a given text.
+
+    This class uses the `language_tool_python` library to detect spelling and grammatical mistakes and categorizes them
+    into different types. The class returns the counts of these mistake types as a logarithmically scaled numerical
+    feature.
+
+    Attributes
+    ----------
+    spell_checker : language_tool_python.LanguageTool
+        An instance of the `LanguageTool` class for German language, used to check text for mistakes.
+
+    Methods
+    -------
+    __init__() -> None
+        Initializes the SpellingMistakes feature with a German language spell checker.
+    dim() -> int
+        Returns the dimensionality of the feature, which is 17.
+    type() -> str
+        Returns the type of the feature, which is "numerical".
+    is_trainable() -> bool
+        Indicates whether the feature is trainable. Always returns False.
+    feature_names() -> List[str]
+        Returns a list of feature names corresponding to the types of mistakes detected.
+    __call__(text: str) -> np.array
+        Computes the logarithmically scaled counts of various types of spelling and grammatical mistakes in the text.
+    """
+
     def __init__(self) -> None:
         self.spell_checker = language_tool_python.LanguageTool("de")
 
@@ -366,6 +564,31 @@ class SpellingMistakes(Feature):
 
 
 class DocumentEmbeddingsFastTextPool(Feature):
+    """
+    A feature that computes document embeddings using FastText pre-trained word embeddings and pooling.
+
+    This class utilizes FastText word embeddings for encoding text into document-level embeddings. The document
+    embeddings are derived by pooling word embeddings obtained from the FastText model.
+
+    Attributes
+    ----------
+    document_embeddings : DocumentPoolEmbeddings
+        An instance of `DocumentPoolEmbeddings` that pools FastText word embeddings to generate document embeddings.
+
+    Methods
+    -------
+    __init__() -> None
+        Initializes the `DocumentEmbeddingsFastTextPool` feature with FastText word embeddings.
+    dim() -> int
+        Returns the dimensionality of the embeddings, which is 300.
+    type() -> str
+        Returns the type of the feature, which is "embedding".
+    is_trainable() -> bool
+        Indicates whether the feature is trainable. Always returns False.
+    __call__(text: str) -> np.array
+        Computes the document embedding for the given text using FastText embeddings.
+    """
+
     def __init__(self) -> None:
         word_embeddings = WordEmbeddings("de")
         self.document_embeddings = DocumentPoolEmbeddings([word_embeddings])
@@ -390,6 +613,32 @@ class DocumentEmbeddingsFastTextPool(Feature):
 
 
 class DocumentEmbeddingsBERT(Feature):
+    """
+    A feature that computes document embeddings using BERT pre-trained embeddings.
+
+    This class utilizes a BERT model ("bert-base-german-cased") to encode text into document-level embeddings. The
+    embeddings are computed using the `TransformerDocumentEmbeddings` class, which provides embeddings from a BERT model
+    and does not perform fine-tuning.
+
+    Attributes
+    ----------
+    embeddings : TransformerDocumentEmbeddings
+        An instance of `TransformerDocumentEmbeddings` configured with BERT for German language.
+
+    Methods
+    -------
+    __init__() -> None
+        Initializes the `DocumentEmbeddingsBERT` feature with the BERT model.
+    dim() -> int
+        Returns the dimensionality of the embeddings, which is 768.
+    type() -> str
+        Returns the type of the feature, which is "embedding".
+    is_trainable() -> bool
+        Indicates whether the feature is trainable. Always returns False.
+    __call__(text: str) -> np.array
+        Computes the document embedding for the given text using the BERT model.
+    """
+
     def __init__(self) -> None:
         self.embeddings = TransformerDocumentEmbeddings("bert-base-german-cased", fine_tune=False)
 
@@ -413,8 +662,23 @@ class DocumentEmbeddingsBERT(Feature):
 
 
 class SentimentTextBlob(Feature):
-    def __init__(self) -> None:
-        pass
+    """
+    A feature that computes the sentiment polarity of a given text using TextBlob.
+
+    This class uses the TextBlob library to evaluate the sentiment of the text. The sentiment polarity score ranges from
+     -1 (very negative) to 1 (very positive), indicating the overall sentiment of the text.
+
+    Methods
+    -------
+    dim() -> int
+        Returns the dimensionality of the feature, which is 1.
+    type() -> str
+        Returns the type of the feature, which is "numerical".
+    is_trainable() -> bool
+        Indicates whether the feature is trainable. Always returns False.
+    __call__(text: str) -> float
+        Computes the sentiment polarity score for the given text using TextBlob.
+    """
 
     @property
     def dim(self):
@@ -435,6 +699,42 @@ class SentimentTextBlob(Feature):
 
 
 class SentimentBERT(Feature):
+    """
+    A feature that computes sentiment scores using a BERT-based model for sequence classification.
+
+    This class uses a pre-trained BERT model specifically fine-tuned for sentiment analysis in German. It processes
+    the input text, extracts sentiment scores, and provides them as numerical features. The model outputs three
+    sentiment scores corresponding to different sentiment classes.
+
+    Attributes
+    ----------
+    MAX_NUM_TOKENS : int
+        The maximum number of tokens for input sequences, set to 512. Sequences longer than this are truncated.
+    device : str
+        The device on which the model is loaded, either "cuda" (GPU) if available or "cpu".
+    model : transformers.AutoModelForSequenceClassification
+        The pre-trained BERT model for sequence classification.
+    tokenizer : transformers.AutoTokenizer
+        The tokenizer associated with the pre-trained BERT model.
+    clean_chars : re.Pattern
+        A regular expression pattern for cleaning non-alphabetic characters from the text.
+    clean_http_urls : re.Pattern
+        A regular expression pattern for removing URLs from the text.
+    clean_at_mentions : re.Pattern
+        A regular expression pattern for removing "@mentions" from the text.
+
+    Methods
+    -------
+    __init__() -> None
+        Initializes the SentimentBERT feature with a pre-trained BERT model and tokenizer.
+    __call__(text: str) -> np.array
+        Computes the sentiment scores for the given text using the BERT model.
+    _clean_text(text: str) -> str
+        Cleans the input text by removing URLs, mentions, non-alphabetic characters, and normalizing whitespace.
+    _replace_numbers(text: str) -> str
+        Replaces numerical digits in the text with their German word equivalents.
+    """
+
     MAX_NUM_TOKENS = 512
 
     def __init__(self) -> None:
@@ -503,6 +803,35 @@ class SentimentBERT(Feature):
 
 
 class WritingStyleEmbeddings(Feature):
+    """
+    A feature that generates writing style embeddings using a pre-trained AdHominem model.
+
+    This class uses the AdHominem model to extract writing style embeddings from text. It preprocesses the input text
+    using the SoMaJo tokenizer and then computes embeddings via the AdHominem model. The model parameters are loaded
+    from a specified file, and TensorFlow is used to handle the model's computation.
+
+    Attributes
+    ----------
+    tokenizer : SoMaJo
+        The tokenizer used to preprocess the text, configured for the specified language.
+    adhominem : AdHominem
+        The AdHominem model for generating embeddings, initialized with pre-loaded parameters.
+    session : tf.Session
+        The TensorFlow session used to run the model computations.
+
+    Methods
+    -------
+    __init__() -> None
+        Initializes the WritingStyleEmbeddings feature by setting up the tokenizer, loading the AdHominem model,
+        and initializing the TensorFlow session.
+    __call__(text: str) -> np.array
+        Computes the writing style embeddings for the given text using the AdHominem model.
+    preprocess_doc(doc: str, tokenizer: SoMaJo) -> str
+        Preprocesses the input text by tokenizing it into sentences and concatenating tokens.
+    make_inference(doc: str, adhominem: AdHominem, sess: tf.Session) -> np.array
+        Performs inference using the AdHominem model to generate embeddings for the given preprocessed text.
+    """
+
     def __init__(self) -> None:
         self.tokenizer = SoMaJo(language="en_PTB", split_sentences=True)  # "de_CMC"
 
@@ -558,6 +887,38 @@ class WritingStyleEmbeddings(Feature):
 
 
 class FeatureExtractor:
+    """
+    A class for extracting features from a dataset using specified feature functions.
+
+    The `FeatureExtractor` class applies a list of `Feature` functions to a dataset, computing features and optionally
+    saving them to a file. It handles both training and inference stages, allowing for feature extraction from text data
+    and label management.
+
+    Parameters
+    ----------
+    feature_funcs : List[Feature]
+        A list of `Feature` objects to be used for feature extraction. Each `Feature` object should implement the
+        `__call__` method to process text and return feature values.
+
+    Methods
+    -------
+    get_features(
+        dataset_file: Union[str, Path],
+        save_file: Optional[Union[str, Path]] = None,
+        train: bool = False,
+        show_progress_bar: bool = False,
+    ) -> Tuple[np.array, np.array]
+        Extracts features from the dataset specified by `dataset_file`. Optionally saves the features and labels to
+        `save_file`. If `train` is True, fits the trainable features on the training data. Optionally displays a
+        progress bar.
+
+    _check_has_labels(data_frame: pd.DataFrame) -> bool
+        Checks if the dataset contains label columns necessary for training or evaluation.
+
+    _get_feature_dim() -> int
+        Computes the total dimensionality of the feature space based on the dimensions of the provided feature functions.
+    """
+
     def __init__(self, feature_funcs: List[Feature]) -> None:
         self.feature_funcs = feature_funcs
 

@@ -1,6 +1,0 @@
-# Model parameters
-name: 'bert-embeddings-bert-sentiment'
-num_splits: 7
-num_trials: 100
-features: [DocumentEmbeddingsBERT, SentimentBERT]
-random_state: 42

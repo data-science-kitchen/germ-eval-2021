@@ -4,7 +4,7 @@ flair==0.14.0
 joblib==1.4.2
 language_tool_python==2.8
 matplotlib==3.9.2
-nltk==3.8.1
+nltk==3.9
 numpy==1.26.4
 optuna==3.6.1
 pandas==2.2.2
